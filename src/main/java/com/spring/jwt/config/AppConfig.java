@@ -219,11 +219,26 @@ public class AppConfig {
             {
                 CorsConfiguration config = new CorsConfiguration();
                 config.setAllowedOrigins(allowedOrigins);
-                config.setAllowedMethods(Arrays.asList("GET","PATCH","POST", "PUT", "DELETE", "OPTIONS"));
+                config.setAllowedMethods(Arrays.asList("GET","PATCH","POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
                 config.setAllowCredentials(true);
-                config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "Accept"));
-                config.setExposedHeaders(Arrays.asList("Authorization"));
+                config.setAllowedHeaders(Arrays.asList(
+                    "Authorization", 
+                    "Content-Type", 
+                    "X-Requested-With", 
+                    "Accept", 
+                    "Origin", 
+                    "Access-Control-Request-Method", 
+                    "Access-Control-Request-Headers",
+                    "Cache-Control",
+                    "Pragma"
+                ));
+                config.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
                 config.setMaxAge(3600L);
+                
+                // Log CORS configuration for debugging
+                log.debug("CORS Configuration - Allowed Origins: {}", allowedOrigins);
+                log.debug("CORS Configuration - Request Origin: {}", request.getHeader("Origin"));
+                
                 return config;
             }
         };

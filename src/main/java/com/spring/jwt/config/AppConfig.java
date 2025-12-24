@@ -215,10 +215,11 @@ public class AppConfig {
         return new CorsConfigurationSource()
         {
             @Override
-            public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
+            public CorsConfiguration getCorsConfiguration(HttpServletRequest request)
+            {
                 CorsConfiguration config = new CorsConfiguration();
                 config.setAllowedOrigins(allowedOrigins);
-                config.setAllowedMethods(Arrays.asList("GET", "PATCH","POST", "PUT", "DELETE", "OPTIONS"));
+                config.setAllowedMethods(Arrays.asList("GET","PATCH","POST", "PUT", "DELETE", "OPTIONS"));
                 config.setAllowCredentials(true);
                 config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "Accept"));
                 config.setExposedHeaders(Arrays.asList("Authorization"));

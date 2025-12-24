@@ -1,0 +1,465 @@
+{
+	"info": {
+		"_postman_id": "complete-profile-photos-api",
+		"name": "CompleteProfile API with Profile Photos",
+		"description": "Updated CompleteProfile API endpoints that include profile photos in base64 format",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"{{user_email}}\",\n    \"password\": \"{{user_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.token) {",
+									"        pm.environment.set('auth_token', response.data.token);",
+									"        console.log('Token saved:', response.data.token);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Public CompleteProfile APIs (with Photos)",
+			"item": [
+				{
+					"name": "Get Public Profile by User ID (with Photo)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/complete-profile/public/user/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"complete-profile",
+								"public",
+								"user",
+								"{{user_id}}"
+							]
+						},
+						"description": "Get public profile by user ID - now includes profile photo in base64 format"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response has profile photo fields', function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.data).to.have.property('profilePhotoBase64');",
+									"    pm.expect(response.data).to.have.property('profilePhotoContentType');",
+									"    pm.expect(response.data).to.have.property('hasProfilePhoto');",
+									"});",
+									"",
+									"pm.test('Profile photo data is valid if present', function () {",
+									"    const response = pm.response.json();",
+									"    if (response.data.hasProfilePhoto) {",
+									"        pm.expect(response.data.profilePhotoBase64).to.not.be.null;",
+									"        pm.expect(response.data.profilePhotoContentType).to.not.be.null;",
+									"        console.log('Profile photo found - Content Type:', response.data.profilePhotoContentType);",
+									"    } else {",
+									"        console.log('No profile photo found for this user');",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Public Profile by Complete Profile ID (with Photo)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/complete-profile/public/profile/{{complete_profile_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"complete-profile",
+								"public",
+								"profile",
+								"{{complete_profile_id}}"
+							]
+						},
+						"description": "Get public profile by complete profile ID - now includes profile photo in base64 format"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response has profile photo fields', function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.data).to.have.property('profilePhotoBase64');",
+									"    pm.expect(response.data).to.have.property('profilePhotoContentType');",
+									"    pm.expect(response.data).to.have.property('hasProfilePhoto');",
+									"});",
+									"",
+									"pm.test('Profile photo data is valid if present', function () {",
+									"    const response = pm.response.json();",
+									"    if (response.data.hasProfilePhoto) {",
+									"        pm.expect(response.data.profilePhotoBase64).to.not.be.null;",
+									"        pm.expect(response.data.profilePhotoContentType).to.not.be.null;",
+									"        console.log('Profile photo found - Content Type:', response.data.profilePhotoContentType);",
+									"        console.log('Base64 data length:', response.data.profilePhotoBase64.length);",
+									"    } else {",
+									"        console.log('No profile photo found for this user');",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Browse Public Profiles (with Photos)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/complete-profile/public/browse?page=0&size=5",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"complete-profile",
+								"public",
+								"browse"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "5"
+								}
+							]
+						},
+						"description": "Browse paginated list of public profiles - now includes profile photos in base64 format"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response has profile data with photo fields', function () {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.content && response.data.content.length > 0) {",
+									"        const firstProfile = response.data.content[0];",
+									"        pm.expect(firstProfile).to.have.property('profilePhotoBase64');",
+									"        pm.expect(firstProfile).to.have.property('profilePhotoContentType');",
+									"        pm.expect(firstProfile).to.have.property('hasProfilePhoto');",
+									"    }",
+									"});",
+									"",
+									"pm.test('Count profiles with photos', function () {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.content) {",
+									"        const profilesWithPhotos = response.data.content.filter(profile => profile.hasProfilePhoto);",
+									"        console.log(`Found ${profilesWithPhotos.length} profiles with photos out of ${response.data.content.length} total profiles`);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Authenticated CompleteProfile APIs (with Photos)",
+			"item": [
+				{
+					"name": "Get My Complete Profile (with Photo)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/complete-profile",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"complete-profile"
+							]
+						},
+						"description": "Get authenticated user's complete profile - now includes profile photo in base64 format"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response has profile photo fields', function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.data).to.have.property('profilePhotoBase64');",
+									"    pm.expect(response.data).to.have.property('profilePhotoContentType');",
+									"    pm.expect(response.data).to.have.property('hasProfilePhoto');",
+									"});",
+									"",
+									"pm.test('Profile includes contact details (authenticated)', function () {",
+									"    const response = pm.response.json();",
+									"    // Authenticated users should see contact details",
+									"    pm.expect(response.data).to.have.property('contactDetails');",
+									"});",
+									"",
+									"pm.test('Profile photo data is valid if present', function () {",
+									"    const response = pm.response.json();",
+									"    if (response.data.hasProfilePhoto) {",
+									"        pm.expect(response.data.profilePhotoBase64).to.not.be.null;",
+									"        pm.expect(response.data.profilePhotoContentType).to.not.be.null;",
+									"        console.log('Profile photo found - Content Type:', response.data.profilePhotoContentType);",
+									"    } else {",
+									"        console.log('No profile photo found for authenticated user');",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Complete Profile by ID (with Photo)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/complete-profile/{{complete_profile_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"complete-profile",
+								"{{complete_profile_id}}"
+							]
+						},
+						"description": "Get complete profile by ID (authenticated) - now includes profile photo in base64 format"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response has profile photo fields', function () {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.data).to.have.property('profilePhotoBase64');",
+									"    pm.expect(response.data).to.have.property('profilePhotoContentType');",
+									"    pm.expect(response.data).to.have.property('hasProfilePhoto');",
+									"});",
+									"",
+									"pm.test('Profile includes all sections (authenticated)', function () {",
+									"    const response = pm.response.json();",
+									"    // Authenticated users should see all sections including sensitive ones",
+									"    pm.expect(response.data).to.have.property('contactDetails');",
+									"    pm.expect(response.data).to.have.property('documents');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Profile Photo Comparison",
+			"item": [
+				{
+					"name": "Compare Profile Browse API (with Photos)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/profiles/browse/gender/FEMALE?page=0&size=5",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"profiles",
+								"browse",
+								"gender",
+								"FEMALE"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "5"
+								}
+							]
+						},
+						"description": "Compare with the existing profile browse API that also includes photos"
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Compare photo implementation consistency', function () {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.content && response.data.content.length > 0) {",
+									"        const firstProfile = response.data.content[0];",
+									"        pm.expect(firstProfile).to.have.property('profilePhotoBase64');",
+									"        pm.expect(firstProfile).to.have.property('profilePhotoContentType');",
+									"        pm.expect(firstProfile).to.have.property('hasProfilePhoto');",
+									"        console.log('Profile browse API also has photo fields - implementation is consistent');",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "user_email",
+			"value": "test@example.com",
+			"type": "string"
+		},
+		{
+			"key": "user_password",
+			"value": "password123",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "10002",
+			"type": "string"
+		},
+		{
+			"key": "complete_profile_id",
+			"value": "4",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

@@ -91,6 +91,15 @@ public class CompleteProfileResponse {
     @Schema(description = "Profile version for optimistic locking", example = "5")
     private Integer version;
 
+    @Schema(description = "Profile photo as base64 encoded string")
+    private String profilePhotoBase64;
+
+    @Schema(description = "Profile photo content type", example = "image/jpeg")
+    private String profilePhotoContentType;
+
+    @Schema(description = "Whether user has a profile photo", example = "true")
+    private Boolean hasProfilePhoto;
+
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

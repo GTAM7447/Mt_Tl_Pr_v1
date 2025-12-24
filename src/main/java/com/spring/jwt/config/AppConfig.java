@@ -143,7 +143,6 @@ public class AppConfig {
 
         log.debug("Configuring URL-based security rules");
         http.authorizeHttpRequests(authorize -> authorize
-                // Authentication endpoints
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(jwtConfig.getUrl()).permitAll()
                 .requestMatchers(jwtConfig.getRefreshUrl()).permitAll()
@@ -155,6 +154,7 @@ public class AppConfig {
                 .requestMatchers("/api/v1/exam/**").permitAll()
 
                 .requestMatchers("/api/completeProfile/getProfile/**").permitAll()
+                .requestMatchers("/api/v1/complete-profile/public/**").permitAll()
                 .requestMatchers("/api/v1/interests/**").authenticated()
 
                 .requestMatchers(

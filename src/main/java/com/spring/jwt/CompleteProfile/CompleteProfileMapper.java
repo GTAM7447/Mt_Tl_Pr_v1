@@ -82,6 +82,54 @@ public class CompleteProfileMapper {
     }
 
     /**
+     * Convert CompleteProfile entity to public-safe response DTO.
+     * This method excludes sensitive information like contact details, 
+     * personal documents, and other private data.
+     */
+    public CompleteProfileResponse toPublicResponse(CompleteProfile entity) {
+        if (entity == null) {
+            return null;
+        }
+
+        CompleteProfileResponse response = new CompleteProfileResponse();
+        
+        // Basic information (public-safe)
+        response.setCompleteProfileId(entity.getCompleteProfileId());
+        response.setUserId(entity.getUser() != null ? entity.getUser().getId() : null);
+        response.setProfileCompleted(entity.getProfileCompleted());
+        response.setCompletionPercentage(entity.getCompletionPercentage());
+        response.setCompletenessScore(entity.getCompletenessScore());
+        response.setProfileQuality(entity.getProfileQuality() != null ? entity.getProfileQuality().name() : null);
+        response.setProfileVisibility(entity.getProfileVisibility() != null ? entity.getProfileVisibility().name() : null);
+        response.setVerificationStatus(entity.getVerificationStatus() != null ? entity.getVerificationStatus().name() : null);
+        response.setLastUpdated(entity.getUpdatedAt());
+        response.setCreatedAt(entity.getCreatedAt());
+        
+        // Profile sections (public-safe versions)
+        response.setUserProfile(entity.getUserProfile() != null ? 
+                profileMapper.toResponse(entity.getUserProfile()) : null);
+        response.setHoroscopeDetails(entity.getHoroscopeDetails() != null ? 
+                horoscopeMapper.toResponse(entity.getHoroscopeDetails()) : null);
+        response.setEducationAndProfession(entity.getEducationAndProfession() != null ? 
+                educationMapper.toResponse(entity.getEducationAndProfession()) : null);
+        response.setFamilyBackground(entity.getFamilyBackground() != null ? 
+                familyBackgroundMapper.toResponse(entity.getFamilyBackground()) : null);
+        response.setPartnerPreference(entity.getPartnerPreference() != null ? 
+                partnerPreferenceMapper.toResponse(entity.getPartnerPreference()) : null);
+        
+        // Exclude sensitive contact details for public viewing
+        response.setContactDetails(null);
+        
+        // Exclude documents for public viewing
+        response.setDocuments(null);
+        
+        // Public-safe strength metrics (exclude sensitive verification info)
+        response.setStrengthMetrics(buildPublicStrengthMetrics(entity));
+
+        return response;
+    }
+
+    /**
      * Build missing profile DTO with enhanced analytics.
      */
     public MissingProfileDTO toMissingProfileDTO(CompleteProfile entity) {
@@ -320,6 +368,32 @@ public class CompleteProfileMapper {
         metrics.setMobileVerified(entity.getMobileVerified());
         metrics.setEmailVerified(entity.getEmailVerified());
         metrics.setIdentityVerified(entity.getIdentityVerified());
+
+        return metrics;
+    }
+
+    /**
+     * Build public-safe strength metrics from entity data.
+     * Excludes sensitive verification information.
+     */
+    private CompleteProfileResponse.ProfileStrengthMetrics buildPublicStrengthMetrics(CompleteProfile entity) {
+        CompleteProfileResponse.ProfileStrengthMetrics metrics = new CompleteProfileResponse.ProfileStrengthMetrics();
+        
+        metrics.setBasicInfoScore(entity.getBasicInfoScore());
+        // Hide contact info score for public viewing
+        metrics.setContactInfoScore(null);
+        metrics.setPersonalDetailsScore(entity.getPersonalDetailsScore());
+        metrics.setFamilyInfoScore(entity.getFamilyInfoScore());
+        metrics.setProfessionalInfoScore(entity.getProfessionalInfoScore());
+        metrics.setPreferencesScore(entity.getPreferencesScore());
+        // Hide document score for public viewing
+        metrics.setDocumentScore(null);
+        
+        metrics.setHasProfilePhoto(entity.getHasProfilePhoto());
+        // Hide verification details for public viewing
+        metrics.setMobileVerified(null);
+        metrics.setEmailVerified(null);
+        metrics.setIdentityVerified(null);
 
         return metrics;
     }

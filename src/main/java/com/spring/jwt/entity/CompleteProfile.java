@@ -71,7 +71,6 @@ public class CompleteProfile {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
-    // Profile completeness metrics
     @Column(name = "profile_completed", nullable = false)
     private Boolean profileCompleted = false;
 
@@ -88,7 +87,6 @@ public class CompleteProfile {
     @Column(name = "missing_sections_count", nullable = false)
     private Integer missingSectionsCount = 7;
 
-    // Profile status and visibility
     @Column(name = "profile_visibility", length = 20, nullable = false)
     @Enumerated(EnumType.STRING)
     private ProfileVisibility profileVisibility = ProfileVisibility.PRIVATE;
@@ -97,7 +95,6 @@ public class CompleteProfile {
     @Enumerated(EnumType.STRING)
     private VerificationStatus verificationStatus = VerificationStatus.UNVERIFIED;
 
-    // Strength metrics (stored as JSON or separate columns)
     @Column(name = "basic_info_score")
     private Integer basicInfoScore = 0;
 
@@ -119,7 +116,6 @@ public class CompleteProfile {
     @Column(name = "document_score")
     private Integer documentScore = 0;
 
-    // Verification flags
     @Column(name = "has_profile_photo", nullable = false)
     private Boolean hasProfilePhoto = false;
 
@@ -132,7 +128,6 @@ public class CompleteProfile {
     @Column(name = "identity_verified", nullable = false)
     private Boolean identityVerified = false;
 
-    // Audit trail
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -145,7 +140,6 @@ public class CompleteProfile {
     @Column(name = "updated_by")
     private Integer updatedBy;
 
-    // Soft delete
     @Column(name = "deleted", nullable = false)
     private Boolean deleted = false;
 
@@ -155,27 +149,22 @@ public class CompleteProfile {
     @Column(name = "deleted_by")
     private Integer deletedBy;
 
-    // Optimistic locking
     @Version
     @Column(name = "version", nullable = false)
     private Integer version = 0;
 
-    // Profile quality enum
     public enum ProfileQuality {
         POOR, FAIR, GOOD, VERY_GOOD, EXCELLENT
     }
 
-    // Profile visibility enum
     public enum ProfileVisibility {
         PRIVATE, MEMBERS_ONLY, PUBLIC
     }
 
-    // Verification status enum
     public enum VerificationStatus {
         UNVERIFIED, PENDING, VERIFIED, REJECTED
     }
 
-    // JPA lifecycle callbacks
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();

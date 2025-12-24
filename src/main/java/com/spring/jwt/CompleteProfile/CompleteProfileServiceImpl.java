@@ -63,6 +63,56 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheUtils.CacheNames.COMPLETE_PROFILES, key = "'public_' + #userId")
+    public CompleteProfileResponse getPublicProfileByUserId(Integer userId) {
+        log.debug("Public access: fetching complete profile for user ID: {}", userId);
+
+        try {
+            CompleteProfile completeProfile = completeProfileRepo.findByUser_Id(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Complete profile not found for user ID: " + userId));
+
+            // Return public-safe version of the profile
+            return mapper.toPublicResponse(completeProfile);
+        } catch (Exception e) {
+            log.error("Error fetching public profile for user ID {}: {}", userId, e.getMessage());
+            throw new ResourceNotFoundException("Profile not found or not available for public viewing");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = CacheUtils.CacheNames.COMPLETE_PROFILES, key = "'public_cp_' + #completeProfileId")
+    public CompleteProfileResponse getPublicProfileByCompleteProfileId(Long completeProfileId) {
+        log.debug("Public access: fetching complete profile by ID: {}", completeProfileId);
+
+        try {
+            CompleteProfile completeProfile = completeProfileRepo.findById(Math.toIntExact(completeProfileId))
+                    .orElseThrow(() -> new ResourceNotFoundException("Complete profile not found with ID: " + completeProfileId));
+
+            return mapper.toPublicResponse(completeProfile);
+        } catch (Exception e) {
+            log.error("Error fetching public profile by ID {}: {}", completeProfileId, e.getMessage());
+            throw new ResourceNotFoundException("Profile not found or not available for public viewing");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = CacheUtils.CacheNames.COMPLETE_PROFILES, key = "'public_browse_' + #pageable.pageNumber + '_' + #pageable.pageSize")
+    public Page<CompleteProfileResponse> getPublicProfiles(Pageable pageable) {
+        log.debug("Public access: fetching profiles for browsing, page: {}", pageable.getPageNumber());
+
+        try {
+            Page<CompleteProfile> profiles = completeProfileRepo.findPublicProfiles(pageable);
+            return profiles.map(mapper::toPublicResponse);
+        } catch (Exception e) {
+            log.error("Error fetching public profiles for browsing: {}", e.getMessage());
+            return Page.empty(pageable);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Page<CompleteProfileResponse> getAllCompleteProfiles(Pageable pageable) {
         log.debug("Admin fetching all complete profiles, page: {}", pageable.getPageNumber());
 

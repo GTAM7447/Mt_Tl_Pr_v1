@@ -7,6 +7,8 @@ import com.spring.jwt.entity.User;
 import com.spring.jwt.entity.Enums.InterestStatus;
 import com.spring.jwt.profile.ProfileService;
 import com.spring.jwt.profile.dto.response.ProfileResponse;
+import com.spring.jwt.CompleteProfile.CompleteProfileRepository;
+import com.spring.jwt.entity.CompleteProfile;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 public class ExpressInterestMapper {
 
     private final ProfileService profileService;
+    private final CompleteProfileRepository completeProfileRepository;
 
     public ExpressInterest toEntity(ExpressInterestCreateRequest request, User fromUser, User toUser) {
         if (request == null) {
@@ -74,9 +77,36 @@ public class ExpressInterestMapper {
 
         if (entity.getFromUser() != null) {
             response.setFromUserName(getUserDisplayName(entity.getFromUser()));
+            
+            // Set complete profile ID and profile ID for from user
+            try {
+                CompleteProfile fromCompleteProfile = completeProfileRepository.findByUser_Id(entity.getFromUser().getId()).orElse(null);
+                if (fromCompleteProfile != null) {
+                    response.setFromUserCompleteProfileId(fromCompleteProfile.getCompleteProfileId());
+                    if (fromCompleteProfile.getUserProfile() != null) {
+                        response.setFromUserProfileId(fromCompleteProfile.getUserProfile().getUserProfileId());
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Error loading complete profile for from user {}: {}", entity.getFromUser().getId(), e.getMessage());
+            }
         }
+        
         if (entity.getToUser() != null) {
             response.setToUserName(getUserDisplayName(entity.getToUser()));
+            
+            // Set complete profile ID and profile ID for to user
+            try {
+                CompleteProfile toCompleteProfile = completeProfileRepository.findByUser_Id(entity.getToUser().getId()).orElse(null);
+                if (toCompleteProfile != null) {
+                    response.setToUserCompleteProfileId(toCompleteProfile.getCompleteProfileId());
+                    if (toCompleteProfile.getUserProfile() != null) {
+                        response.setToUserProfileId(toCompleteProfile.getUserProfile().getUserProfileId());
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Error loading complete profile for to user {}: {}", entity.getToUser().getId(), e.getMessage());
+            }
         }
 
         return response;
@@ -104,6 +134,19 @@ public class ExpressInterestMapper {
         response.setVersion(entity.getVersion());
 
         if (entity.getFromUser() != null) {
+            // Set complete profile ID and profile ID for from user
+            try {
+                CompleteProfile fromCompleteProfile = completeProfileRepository.findByUser_Id(entity.getFromUser().getId()).orElse(null);
+                if (fromCompleteProfile != null) {
+                    response.setFromUserCompleteProfileId(fromCompleteProfile.getCompleteProfileId());
+                    if (fromCompleteProfile.getUserProfile() != null) {
+                        response.setFromUserProfileId(fromCompleteProfile.getUserProfile().getUserProfileId());
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Error loading complete profile for from user {}: {}", entity.getFromUser().getId(), e.getMessage());
+            }
+            
             try {
                 response.setFromUserProfile(profileService.getProfileByUserId(entity.getFromUser().getId()));
             } catch (Exception e) {
@@ -111,7 +154,21 @@ public class ExpressInterestMapper {
                 response.setFromUserProfile(null);
             }
         }
+        
         if (entity.getToUser() != null) {
+            // Set complete profile ID and profile ID for to user
+            try {
+                CompleteProfile toCompleteProfile = completeProfileRepository.findByUser_Id(entity.getToUser().getId()).orElse(null);
+                if (toCompleteProfile != null) {
+                    response.setToUserCompleteProfileId(toCompleteProfile.getCompleteProfileId());
+                    if (toCompleteProfile.getUserProfile() != null) {
+                        response.setToUserProfileId(toCompleteProfile.getUserProfile().getUserProfileId());
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Error loading complete profile for to user {}: {}", entity.getToUser().getId(), e.getMessage());
+            }
+            
             try {
                 response.setToUserProfile(profileService.getProfileByUserId(entity.getToUser().getId()));
             } catch (Exception e) {

@@ -80,7 +80,7 @@ public class AppConfig {
     @Value("${app.url.frontend:http://localhost:5173}")
     private String frontendUrl;
 
-    @Value("#{'${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000,http://localhost:8080,http://localhost:5173/,http://localhost:8091/,http://localhost:8085/,https://matrimony-t.netlify.app/,https://gtast.netlify.app/,https://gtast.netlify.app,https://matrimony-t.netlify.app}'.split(',')}")
+    @Value("#{'${app.cors.allowed-origins:https://matrimony-tejas.netlify.app/,http://localhost:5173/,https://matrimony-t.netlify.app/,https://gtast.netlify.app/,https://gtast.netlify.app,https://matrimony-t.netlify.app}'.split(',')}")
     private List<String> allowedOrigins;
 
     @Bean
@@ -234,8 +234,7 @@ public class AppConfig {
                 ));
                 config.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
                 config.setMaxAge(3600L);
-                
-                // Log CORS configuration for debugging
+
                 log.debug("CORS Configuration - Allowed Origins: {}", allowedOrigins);
                 log.debug("CORS Configuration - Request Origin: {}", request.getHeader("Origin"));
                 

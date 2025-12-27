@@ -80,7 +80,7 @@ public class AppConfig {
     @Value("${app.url.frontend:http://localhost:5173}")
     private String frontendUrl;
 
-    @Value("#{'${app.cors.allowed-origins:http://localhost:5173/,https://matrimony-v1.netlify.app,https://matrimon1.netlify.app/}'.split(',')}")
+    @Value("#{'${app.cors.allowed-origins:http://localhost:5173/,https://matrimony-v1.netlify.app,https://matrimon1.netlify.app}'.split(',')}")
     private List<String> allowedOrigins;
 
     @Bean

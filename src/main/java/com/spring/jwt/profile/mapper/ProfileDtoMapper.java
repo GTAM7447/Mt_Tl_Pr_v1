@@ -1,5 +1,8 @@
 package com.spring.jwt.profile.mapper;
 
+import com.spring.jwt.Document.DocumentRepository;
+import com.spring.jwt.Enums.DocumentType;
+import com.spring.jwt.entity.Document;
 import com.spring.jwt.entity.Enums.Gender;
 import com.spring.jwt.entity.Enums.Status;
 import com.spring.jwt.entity.User;
@@ -9,10 +12,19 @@ import com.spring.jwt.profile.dto.request.UpdateProfileRequest;
 import com.spring.jwt.profile.dto.response.ProfileListView;
 import com.spring.jwt.profile.dto.response.ProfileResponse;
 import com.spring.jwt.profile.dto.response.PublicProfileView;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.Base64;
+import java.util.Optional;
+
 @Component
+@RequiredArgsConstructor
+@Slf4j
 public class ProfileDtoMapper {
+
+    private final DocumentRepository documentRepository;
 
     public UserProfile toEntity(CreateProfileRequest request, User user) {
         UserProfile profile = new UserProfile();
@@ -131,6 +143,8 @@ public class ProfileDtoMapper {
     }
 
     public PublicProfileView toPublicView(UserProfile profile) {
+        ProfilePhotoData photoData = getProfilePhotoData(profile.getUser().getId());
+        
         return PublicProfileView.builder()
                 .userProfileId(profile.getUserProfileId())
                 .firstName(profile.getFirstName())
@@ -142,10 +156,15 @@ public class ProfileDtoMapper {
                 .complexion(profile.getComplexion())
                 .currentCity(profile.getCurrentCity())
                 .maritalStatus(profile.getMaritalStatus())
+                .profilePhotoBase64(photoData.base64Data)
+                .profilePhotoContentType(photoData.contentType)
+                .hasProfilePhoto(photoData.hasPhoto)
                 .build();
     }
 
     public ProfileListView toListView(UserProfile profile) {
+        ProfilePhotoData photoData = getProfilePhotoData(profile.getUser().getId());
+        
         return ProfileListView.builder()
                 .userProfileId(profile.getUserProfileId())
                 .firstName(profile.getFirstName())
@@ -159,6 +178,44 @@ public class ProfileDtoMapper {
                 .currentCity(profile.getCurrentCity())
                 .maritalStatus(profile.getMaritalStatus())
                 .status(profile.getStatus().name())
+                .profilePhotoBase64(photoData.base64Data)
+                .profilePhotoContentType(photoData.contentType)
+                .hasProfilePhoto(photoData.hasPhoto)
                 .build();
+    }
+
+    /**
+     * Helper method to fetch and convert profile photo to base64
+     */
+    private ProfilePhotoData getProfilePhotoData(Integer userId) {
+        try {
+            Optional<Document> profilePhotoDoc = documentRepository.findByUserIdAndDocumentType(userId, DocumentType.PROFILE_PHOTO);
+            
+            if (profilePhotoDoc.isPresent()) {
+                Document document = profilePhotoDoc.get();
+                String base64Data = Base64.getEncoder().encodeToString(document.getFileData());
+                return new ProfilePhotoData(base64Data, document.getContentType(), true);
+            } else {
+                return new ProfilePhotoData(null, null, false);
+            }
+        } catch (Exception e) {
+            log.warn("Error fetching profile photo for user {}: {}", userId, e.getMessage());
+            return new ProfilePhotoData(null, null, false);
+        }
+    }
+
+    /**
+     * Helper class to hold profile photo data
+     */
+    private static class ProfilePhotoData {
+        final String base64Data;
+        final String contentType;
+        final boolean hasPhoto;
+
+        ProfilePhotoData(String base64Data, String contentType, boolean hasPhoto) {
+            this.base64Data = base64Data;
+            this.contentType = contentType;
+            this.hasPhoto = hasPhoto;
+        }
     }
 }

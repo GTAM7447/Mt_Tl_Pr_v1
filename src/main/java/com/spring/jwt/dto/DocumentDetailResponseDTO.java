@@ -19,7 +19,7 @@ public class DocumentDetailResponseDTO {
     private String description;
     private Long fileSize;
     private String contentType;
-    private String fileData; // Base64 encoded file data
+    private String fileData;
     private LocalDateTime uploadedAt;
     private LocalDateTime updatedAt;
 }

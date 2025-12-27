@@ -26,7 +26,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.header.writers.XXssProtectionHeaderWriter;
-import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.filter.ForwardedHeaderFilter;
@@ -81,7 +80,7 @@ public class AppConfig {
     @Value("${app.url.frontend:http://localhost:5173}")
     private String frontendUrl;
 
-    @Value("#{'${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000,http://localhost:8080,http://localhost:5173/,http://localhost:8091/,http://localhost:8085/}'.split(',')}")
+    @Value("#{'${app.cors.allowed-origins:http://localhost:5173/,https://matrimony-v1.netlify.app}'.split(',')}")
     private List<String> allowedOrigins;
 
     @Bean
@@ -143,7 +142,6 @@ public class AppConfig {
 
         log.debug("Configuring URL-based security rules");
         http.authorizeHttpRequests(authorize -> authorize
-                // Authentication endpoints
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(jwtConfig.getUrl()).permitAll()
                 .requestMatchers(jwtConfig.getRefreshUrl()).permitAll()
@@ -151,10 +149,12 @@ public class AppConfig {
                 .requestMatchers("/api/v1/users/register").permitAll()
                 .requestMatchers("/api/v1/users/password/**").permitAll()
                 .requestMatchers("/api/users/**").permitAll()
+                .requestMatchers("/api/v1/profiles/2/public/**").permitAll()
 
                 .requestMatchers("/api/v1/exam/**").permitAll()
 
                 .requestMatchers("/api/completeProfile/getProfile/**").permitAll()
+                .requestMatchers("/api/v1/complete-profile/public/**").permitAll()
                 .requestMatchers("/api/v1/interests/**").authenticated()
 
                 .requestMatchers(
@@ -212,16 +212,32 @@ public class AppConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        return new CorsConfigurationSource() {
+        return new CorsConfigurationSource()
+        {
             @Override
-            public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
+            public CorsConfiguration getCorsConfiguration(HttpServletRequest request)
+            {
                 CorsConfiguration config = new CorsConfiguration();
                 config.setAllowedOrigins(allowedOrigins);
-                config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                config.setAllowedMethods(Arrays.asList("GET","PATCH","POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
                 config.setAllowCredentials(true);
-                config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "Accept"));
-                config.setExposedHeaders(Arrays.asList("Authorization"));
+                config.setAllowedHeaders(Arrays.asList(
+                    "Authorization", 
+                    "Content-Type", 
+                    "X-Requested-With", 
+                    "Accept", 
+                    "Origin", 
+                    "Access-Control-Request-Method", 
+                    "Access-Control-Request-Headers",
+                    "Cache-Control",
+                    "Pragma"
+                ));
+                config.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
                 config.setMaxAge(3600L);
+
+                log.debug("CORS Configuration - Allowed Origins: {}", allowedOrigins);
+                log.debug("CORS Configuration - Request Origin: {}", request.getHeader("Origin"));
+                
                 return config;
             }
         };

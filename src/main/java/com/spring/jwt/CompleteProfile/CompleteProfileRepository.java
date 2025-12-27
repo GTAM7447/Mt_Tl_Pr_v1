@@ -202,4 +202,18 @@ public interface CompleteProfileRepository extends JpaRepository<CompleteProfile
            "WHERE cp.deleted = false " +
            "AND cp.profileCompleted = true")
     Long countCompleteProfiles();
+
+    /**
+     * Find public profiles for browsing (no authentication required).
+     * Returns profiles that are marked as public and have sufficient completion.
+     */
+    @Query("SELECT cp FROM CompleteProfile cp " +
+           "LEFT JOIN FETCH cp.user u " +
+           "WHERE cp.deleted = false " +
+           "AND cp.profileCompleted = true " +
+           "AND cp.completionPercentage >= 60 " +
+           "AND (cp.profileVisibility = 'PUBLIC' OR cp.profileVisibility IS NULL) " +
+           "AND u.emailVerified = true " +
+           "ORDER BY cp.completenessScore DESC, cp.updatedAt DESC")
+    Page<CompleteProfile> findPublicProfiles(Pageable pageable);
 }

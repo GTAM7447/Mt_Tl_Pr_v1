@@ -53,6 +53,18 @@ public class ExpressInterestDetailResponse {
     @Schema(description = "Current version for optimistic locking", example = "1")
     private Integer version;
 
+    @Schema(description = "Complete profile ID of user who sent the interest", example = "789")
+    private Integer fromUserCompleteProfileId;
+
+    @Schema(description = "Profile ID of user who sent the interest", example = "101")
+    private Integer fromUserProfileId;
+
+    @Schema(description = "Complete profile ID of user who received the interest", example = "790")
+    private Integer toUserCompleteProfileId;
+
+    @Schema(description = "Profile ID of user who received the interest", example = "102")
+    private Integer toUserProfileId;
+
     @Schema(description = "Profile information of user who sent the interest")
     private ProfileResponse fromUserProfile;
 

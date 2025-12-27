@@ -156,8 +156,8 @@ public class CompleteProfileController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Get all complete profiles", 
+//    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get all complete profiles",
                description = "Retrieve all complete profiles with pagination (Admin only)")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Complete profiles retrieved successfully"),
@@ -328,6 +328,78 @@ public class CompleteProfileController {
         CompleteProfileService.ProfileCompletionStats response = completeProfileService.getCompletionStatistics();
         
         return ResponseEntity.ok(ResponseDto.success("Statistics retrieved successfully", response));
+    }
+
+
+    @GetMapping("/public/user/{userId}")
+    @Operation(summary = "Get public profile by user ID", 
+               description = "Retrieve public-safe profile information for viewing profile cards (No authentication required)")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Public profile retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = CompleteProfileResponse.class))),
+        @ApiResponse(responseCode = "404", description = "Profile not found or not available for public viewing"),
+        @ApiResponse(responseCode = "429", description = "Too many requests - Rate limit exceeded")
+    })
+    @RateLimiter(name = "publicProfileApi")
+    public ResponseEntity<ResponseDto<CompleteProfileResponse>> getPublicProfileByUserId(
+            @Parameter(description = "User ID", required = true)
+            @PathVariable Integer userId) {
+        
+        log.debug("Public access: fetching profile for user ID: {}", userId);
+        
+        CompleteProfileResponse response = completeProfileService.getPublicProfileByUserId(userId);
+        
+        return ResponseEntity.ok(ResponseDto.success("Public profile retrieved successfully", response));
+    }
+
+    @GetMapping("/public/profile/{completeProfileId}")
+    @Operation(summary = "Get public profile by complete profile ID", 
+               description = "Retrieve public-safe profile information using complete profile ID (No authentication required)")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Public profile retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = CompleteProfileResponse.class))),
+        @ApiResponse(responseCode = "404", description = "Profile not found or not available for public viewing"),
+        @ApiResponse(responseCode = "429", description = "Too many requests - Rate limit exceeded")
+    })
+    @RateLimiter(name = "publicProfileApi")
+    public ResponseEntity<ResponseDto<CompleteProfileResponse>> getPublicProfileByCompleteProfileId(
+            @Parameter(description = "Complete Profile ID", required = true)
+            @PathVariable Long completeProfileId) {
+        
+        log.debug("Public access: fetching profile by complete profile ID: {}", completeProfileId);
+        
+        CompleteProfileResponse response = completeProfileService.getPublicProfileByCompleteProfileId(completeProfileId);
+        
+        return ResponseEntity.ok(ResponseDto.success("Public profile retrieved successfully", response));
+    }
+
+    @GetMapping("/public/browse")
+    @Operation(summary = "Browse public profiles", 
+               description = "Get paginated list of public profiles for browsing (No authentication required)")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Public profiles retrieved successfully"),
+        @ApiResponse(responseCode = "429", description = "Too many requests - Rate limit exceeded")
+    })
+    @RateLimiter(name = "publicProfileApi")
+    public ResponseEntity<ResponseDto<Page<CompleteProfileResponse>>> browsePublicProfiles(
+            @Parameter(description = "Page number (0-based)", example = "0")
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            
+            @Parameter(description = "Page size", example = "20")
+            @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size,
+            
+            @Parameter(description = "Sort field", example = "completenessScore")
+            @RequestParam(defaultValue = "completenessScore") String sortBy,
+            
+            @Parameter(description = "Sort direction", example = "DESC")
+            @RequestParam(defaultValue = "DESC") Sort.Direction sortDir) {
+        
+        log.debug("Public access: browsing profiles - page: {}, size: {}", page, size);
+        
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDir, sortBy));
+        Page<CompleteProfileResponse> response = completeProfileService.getPublicProfiles(pageable);
+        
+        return ResponseEntity.ok(ResponseDto.success("Public profiles retrieved successfully", response));
     }
 
     @PostMapping("/user/{userId}/recalculate")

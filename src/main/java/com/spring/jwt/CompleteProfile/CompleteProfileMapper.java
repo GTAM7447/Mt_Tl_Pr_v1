@@ -2,7 +2,9 @@ package com.spring.jwt.CompleteProfile;
 
 import com.spring.jwt.CompleteProfile.dto.CompleteProfileResponse;
 import com.spring.jwt.ContactDetails.ContactDetailsMapper;
+import com.spring.jwt.Document.DocumentRepository;
 import com.spring.jwt.EducationAndProfession.EducationAndProfessionMapper;
+import com.spring.jwt.Enums.DocumentType;
 import com.spring.jwt.FamilyBackground.FamilyBackgroundMapper;
 import com.spring.jwt.HoroscopeDetails.HoroscopeDetailsMapper;
 import com.spring.jwt.PartnerPreference.PartnerPreferenceMapper;
@@ -10,10 +12,13 @@ import com.spring.jwt.entity.CompleteProfile;
 import com.spring.jwt.entity.Document;
 import com.spring.jwt.profile.mapper.ProfileDtoMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -22,6 +27,7 @@ import java.util.stream.Collectors;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class CompleteProfileMapper {
 
     private final ProfileDtoMapper profileMapper;
@@ -30,6 +36,7 @@ public class CompleteProfileMapper {
     private final FamilyBackgroundMapper familyBackgroundMapper;
     private final PartnerPreferenceMapper partnerPreferenceMapper;
     private final ContactDetailsMapper contactDetailsMapper;
+    private final DocumentRepository documentRepository;
 
     /**
      * Convert CompleteProfile entity to response DTO.
@@ -77,6 +84,66 @@ public class CompleteProfileMapper {
 
         // Strength metrics
         response.setStrengthMetrics(buildStrengthMetrics(entity));
+
+        // Profile photo data
+        ProfilePhotoData photoData = getProfilePhotoData(entity.getUser() != null ? entity.getUser().getId() : null);
+        response.setProfilePhotoBase64(photoData.base64Data);
+        response.setProfilePhotoContentType(photoData.contentType);
+        response.setHasProfilePhoto(photoData.hasPhoto);
+
+        return response;
+    }
+
+    /**
+     * Convert CompleteProfile entity to public-safe response DTO.
+     * This method excludes sensitive information like contact details, 
+     * personal documents, and other private data.
+     */
+    public CompleteProfileResponse toPublicResponse(CompleteProfile entity) {
+        if (entity == null) {
+            return null;
+        }
+
+        CompleteProfileResponse response = new CompleteProfileResponse();
+        
+        // Basic information (public-safe)
+        response.setCompleteProfileId(entity.getCompleteProfileId());
+        response.setUserId(entity.getUser() != null ? entity.getUser().getId() : null);
+        response.setProfileCompleted(entity.getProfileCompleted());
+        response.setCompletionPercentage(entity.getCompletionPercentage());
+        response.setCompletenessScore(entity.getCompletenessScore());
+        response.setProfileQuality(entity.getProfileQuality() != null ? entity.getProfileQuality().name() : null);
+        response.setProfileVisibility(entity.getProfileVisibility() != null ? entity.getProfileVisibility().name() : null);
+        response.setVerificationStatus(entity.getVerificationStatus() != null ? entity.getVerificationStatus().name() : null);
+        response.setLastUpdated(entity.getUpdatedAt());
+        response.setCreatedAt(entity.getCreatedAt());
+        
+        // Profile sections (public-safe versions)
+        response.setUserProfile(entity.getUserProfile() != null ? 
+                profileMapper.toResponse(entity.getUserProfile()) : null);
+        response.setHoroscopeDetails(entity.getHoroscopeDetails() != null ? 
+                horoscopeMapper.toResponse(entity.getHoroscopeDetails()) : null);
+        response.setEducationAndProfession(entity.getEducationAndProfession() != null ? 
+                educationMapper.toResponse(entity.getEducationAndProfession()) : null);
+        response.setFamilyBackground(entity.getFamilyBackground() != null ? 
+                familyBackgroundMapper.toResponse(entity.getFamilyBackground()) : null);
+        response.setPartnerPreference(entity.getPartnerPreference() != null ? 
+                partnerPreferenceMapper.toResponse(entity.getPartnerPreference()) : null);
+        
+        // Exclude sensitive contact details for public viewing
+        response.setContactDetails(null);
+        
+        // Exclude documents for public viewing
+        response.setDocuments(null);
+        
+        // Public-safe strength metrics (exclude sensitive verification info)
+        response.setStrengthMetrics(buildPublicStrengthMetrics(entity));
+
+        // Profile photo data (safe for public viewing)
+        ProfilePhotoData photoData = getProfilePhotoData(entity.getUser() != null ? entity.getUser().getId() : null);
+        response.setProfilePhotoBase64(photoData.base64Data);
+        response.setProfilePhotoContentType(photoData.contentType);
+        response.setHasProfilePhoto(photoData.hasPhoto);
 
         return response;
     }
@@ -322,5 +389,72 @@ public class CompleteProfileMapper {
         metrics.setIdentityVerified(entity.getIdentityVerified());
 
         return metrics;
+    }
+
+    /**
+     * Build public-safe strength metrics from entity data.
+     * Excludes sensitive verification information.
+     */
+    private CompleteProfileResponse.ProfileStrengthMetrics buildPublicStrengthMetrics(CompleteProfile entity) {
+        CompleteProfileResponse.ProfileStrengthMetrics metrics = new CompleteProfileResponse.ProfileStrengthMetrics();
+        
+        metrics.setBasicInfoScore(entity.getBasicInfoScore());
+        // Hide contact info score for public viewing
+        metrics.setContactInfoScore(null);
+        metrics.setPersonalDetailsScore(entity.getPersonalDetailsScore());
+        metrics.setFamilyInfoScore(entity.getFamilyInfoScore());
+        metrics.setProfessionalInfoScore(entity.getProfessionalInfoScore());
+        metrics.setPreferencesScore(entity.getPreferencesScore());
+        // Hide document score for public viewing
+        metrics.setDocumentScore(null);
+        
+        metrics.setHasProfilePhoto(entity.getHasProfilePhoto());
+        // Hide verification details for public viewing
+        metrics.setMobileVerified(null);
+        metrics.setEmailVerified(null);
+        metrics.setIdentityVerified(null);
+
+        return metrics;
+    }
+
+    /**
+     * Helper method to fetch and convert profile photo to base64
+     * Reuses the same logic as ProfileDtoMapper
+     */
+    private ProfilePhotoData getProfilePhotoData(Integer userId) {
+        if (userId == null) {
+            return new ProfilePhotoData(null, null, false);
+        }
+        
+        try {
+            Optional<Document> profilePhotoDoc = documentRepository.findByUserIdAndDocumentType(userId, DocumentType.PROFILE_PHOTO);
+            
+            if (profilePhotoDoc.isPresent()) {
+                Document document = profilePhotoDoc.get();
+                String base64Data = Base64.getEncoder().encodeToString(document.getFileData());
+                return new ProfilePhotoData(base64Data, document.getContentType(), true);
+            } else {
+                return new ProfilePhotoData(null, null, false);
+            }
+        } catch (Exception e) {
+            log.warn("Error fetching profile photo for user {}: {}", userId, e.getMessage());
+            return new ProfilePhotoData(null, null, false);
+        }
+    }
+
+    /**
+     * Helper class to hold profile photo data
+     * Reused from ProfileDtoMapper pattern
+     */
+    private static class ProfilePhotoData {
+        final String base64Data;
+        final String contentType;
+        final boolean hasPhoto;
+
+        ProfilePhotoData(String base64Data, String contentType, boolean hasPhoto) {
+            this.base64Data = base64Data;
+            this.contentType = contentType;
+            this.hasPhoto = hasPhoto;
+        }
     }
 }

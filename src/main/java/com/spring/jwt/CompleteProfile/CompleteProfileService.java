@@ -25,6 +25,24 @@ public interface CompleteProfileService {
     CompleteProfileResponse getByUserId(Integer userId);
 
     /**
+     * Get complete profile by user ID (public access for viewing profile cards).
+     * This method provides limited profile information suitable for public viewing.
+     */
+    CompleteProfileResponse getPublicProfileByUserId(Integer userId);
+
+    /**
+     * Get complete profile by complete profile ID (public access for viewing profile cards).
+     * This method provides limited profile information suitable for public viewing.
+     */
+    CompleteProfileResponse getPublicProfileByCompleteProfileId(Long completeProfileId);
+
+    /**
+     * Get public profiles for browsing (public access).
+     * Returns a paginated list of public-safe profiles for browsing without authentication.
+     */
+    Page<CompleteProfileResponse> getPublicProfiles(Pageable pageable);
+
+    /**
      * Get all complete profiles with pagination (admin only).
      */
     Page<CompleteProfileResponse> getAllCompleteProfiles(Pageable pageable);

@@ -113,8 +113,6 @@ public class JwtServiceImpl implements JwtService {
             jwtBuilder.claim("userProfileId", userDetailsCustom.getUserProfileId());
         }
         
-
-        
         jwtBuilder.claim(CLAIM_KEY_TOKEN_TYPE, TOKEN_TYPE_ACCESS)
                 .setIssuedAt(Date.from(now))
                 .setNotBefore(Date.from(notBefore))
@@ -250,21 +248,21 @@ public class JwtServiceImpl implements JwtService {
     public boolean isValidToken(String token, String deviceFingerprint) {
         try {
             if (isBlacklisted(token)) {
-                log.warn("Token is blacklisted");
+                log.warn(" Token validation failed: Token is blacklisted");
                 return false;
             }
             
             final String username = extractUsername(token);
             
             if (StringUtils.isEmpty(username)) {
-                log.debug("Token validation failed: empty username");
+                log.warn(" Token validation failed: Empty username");
                 return false;
             }
     
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
             
             if (ObjectUtils.isEmpty(userDetails)) {
-                log.debug("Token validation failed: user not found");
+                log.warn(" Token validation failed: User not found for username: {}", username);
                 return false;
             }
 
@@ -272,50 +270,38 @@ public class JwtServiceImpl implements JwtService {
 
             Date nbf = claims.getNotBefore();
             if (nbf != null && nbf.after(new Date())) {
-                log.debug("Token not yet valid. Current time: {}, Not before: {}", 
+                log.warn(" Token validation failed: Token not yet valid. Current time: {}, Not before: {}",
                         new Date(), nbf);
                 return false;
             }
+            
             if (jwtConfig.isDeviceFingerprintingEnabled()) {
                 String tokenDeviceFingerprint = claims.get(CLAIM_KEY_DEVICE_FINGERPRINT, String.class);
-                // If request supplied a fingerprint, enforce it matches the token's fingerprint
                 if (StringUtils.hasText(deviceFingerprint) && StringUtils.hasText(tokenDeviceFingerprint)
                         && !tokenDeviceFingerprint.equals(deviceFingerprint)) {
-                    log.warn("Device fingerprint mismatch: token={}, request={}",
-                            tokenDeviceFingerprint.substring(0, 8) + "...",
-                            deviceFingerprint.substring(0, 8) + "...");
+                    log.warn(" Token validation failed: Device fingerprint mismatch for user: {}", username);
                     return false;
                 }
-
-                // Enforce single active session: token fingerprint must match the one stored for the user
-//                try {
-//                    var user = userRepository.findByEmail(username);
-//                    if (user != null && StringUtils.hasText(user.getDeviceFingerprint())
-//                            && StringUtils.hasText(tokenDeviceFingerprint)
-//                            && !user.getDeviceFingerprint().equals(tokenDeviceFingerprint)) {
-//                        log.warn("Token fingerprint is no longer current for user: {}", username);
-//                        return false;
-//                    }
-//                } catch (Exception e) {
-//                    log.warn("Could not verify user's current device fingerprint: {}", e.getMessage());
-//                }
             }
-            
-            // Enforce single active session: token must be the current active token for this user
-            try {
-                String tokenId = claims.getId();
-                if (StringUtils.hasText(tokenId) && !activeSessionService.isCurrentAccessToken(username, tokenId)) {
-                    log.warn("Access token is not current for user: {}", username);
-                    return false;
+
+            if (jwtConfig.isEnforceSingleSession()) {
+                try {
+                    String tokenId = claims.getId();
+                    if (StringUtils.hasText(tokenId) && !activeSessionService.isCurrentAccessToken(username, tokenId)) {
+                        log.warn(" Token validation failed: Access token is not current for user: {} (single session enforcement enabled)", username);
+                        return false;
+                    }
+                } catch (Exception e) {
+                    log.warn("⚠️ Could not verify active session: {}", e.getMessage());
                 }
-            } catch (Exception e) {
-                log.warn("Could not verify active session: {}", e.getMessage());
             }
 
-            log.debug("Token validation successful for user: {}", username);
+            log.debug(" Token validation successful for user: {}", username);
             return true;
         } catch (Exception e) {
-            log.debug("Token validation failed with exception: {}", e.getMessage());
+            log.warn(" Token validation failed with exception for token: {} - {}",
+                    token != null && token.length() > 20 ? token.substring(0, 20) + "..." : "null", 
+                    e.getMessage());
             return false;
         }
     }
@@ -334,6 +320,7 @@ public class JwtServiceImpl implements JwtService {
 
         try {
             claims = Jwts.parserBuilder()
+                    .setAllowedClockSkewSeconds(jwtConfig.getAllowedClockSkewSeconds())
                     .setSigningKey(getKey())
                     .build()
                     .parseClaimsJws(token)
@@ -373,9 +360,15 @@ public class JwtServiceImpl implements JwtService {
     public String extractTokenId(String token) {
         try {
             Claims claims = extractClaims(token);
-            return claims.getId();
+            String tokenId = claims.getId();
+            if (tokenId == null) {
+                log.warn("Token ID (jti) is null in token");
+            }
+            return tokenId;
         } catch (Exception e) {
-            log.error("Error extracting token ID: {}", e.getMessage());
+            log.error("Error extracting token ID: {} - Token preview: {}", 
+                    e.getMessage(), 
+                    token != null && token.length() > 30 ? token.substring(0, 30) + "..." : "null or too short");
             return null;
         }
     }

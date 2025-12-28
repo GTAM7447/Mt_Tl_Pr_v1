@@ -26,7 +26,7 @@ public class JwtConfig {
     @Value("${jwt.refresh-expiration:#{7*24*60*60}}")
     private int refreshExpiration;
 
-    @Value("${jwt.not-before:#{1}}")
+    @Value("${jwt.not-before:#{0}}")
     private int notBefore;
 
 	@Value("${jwt.allowed-clock-skew-seconds:5}")
@@ -41,8 +41,11 @@ public class JwtConfig {
     @Value("${jwt.audience:Ashutosh-client Side}")
     private String audience;
 
-    @Value("${jwt.device-fingerprinting-enabled:true}")
+    @Value("${jwt.device-fingerprinting-enabled:false}")
     private boolean deviceFingerprintingEnabled;
+    
+    @Value("${jwt.enforce-single-session:false}")
+    private boolean enforceSingleSession;
 
     @Value("${jwt.max-active-sessions:5}")
     private int maxActiveSessions;

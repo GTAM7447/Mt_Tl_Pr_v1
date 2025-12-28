@@ -14,6 +14,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ActiveSessionService {
 
 	private final Map<String, SessionInfo> usernameToSession = new ConcurrentHashMap<>();
+	
+	// Grace period for token validation
+	private static final long TOKEN_GRACE_PERIOD_SECONDS = 10;
 
 	public SessionInfo replaceActiveSession(String username, String newAccessTokenId, String newRefreshTokenId,
 			Instant accessExpiresAt, Instant refreshExpiresAt) {
@@ -25,9 +28,28 @@ public class ActiveSessionService {
 		return previous;
 	}
 
+	/**
+	 * Check if token is current with grace period for concurrent requests
+	 */
 	public boolean isCurrentAccessToken(String username, String tokenId) {
 		SessionInfo info = usernameToSession.get(username);
-		return info != null && tokenId != null && tokenId.equals(info.getAccessTokenId());
+		if (info == null || tokenId == null) {
+			return false;
+		}
+		
+		if (tokenId.equals(info.getAccessTokenId())) {
+			return true;
+		}
+		
+		Instant gracePeriodStart = info.getUpdatedAt().minusSeconds(TOKEN_GRACE_PERIOD_SECONDS);
+		Instant now = Instant.now();
+		
+		if (now.isAfter(gracePeriodStart) && now.isBefore(info.getUpdatedAt().plusSeconds(TOKEN_GRACE_PERIOD_SECONDS))) {
+			log.debug("Allowing token within grace period for user: {} (token: {})", username, shortId(tokenId));
+			return true;
+		}
+		
+		return false;
 	}
 
 	public boolean isCurrentRefreshToken(String username, String tokenId) {
@@ -38,11 +60,16 @@ public class ActiveSessionService {
 	@Scheduled(fixedRate = 3600000)
 	public void cleanupExpiredSessions() {
 		Instant now = Instant.now();
+		int beforeSize = usernameToSession.size();
 		usernameToSession.entrySet().removeIf(e -> {
 			SessionInfo s = e.getValue();
 			return (s.getRefreshExpiresAt() != null && s.getRefreshExpiresAt().isBefore(now))
 				|| (s.getAccessExpiresAt() != null && s.getAccessExpiresAt().isBefore(now));
 		});
+		int afterSize = usernameToSession.size();
+		if (beforeSize != afterSize) {
+			log.debug("Cleaned up {} expired sessions", beforeSize - afterSize);
+		}
 	}
 
 	private String shortId(String id) {

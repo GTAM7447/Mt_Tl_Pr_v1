@@ -110,11 +110,17 @@ public class JwtUsernamePasswordAuthenticationFilter extends AbstractAuthenticat
                 String accessJti = jwtService.extractTokenId(accessToken);
                 String refreshJti = jwtService.extractTokenId(refreshToken);
                 String username = userDetailsCustom.getUsername();
-                activeSessionService.replaceActiveSession(username, accessJti, refreshJti,
-                        jwtService.extractClaims(accessToken).getExpiration().toInstant(),
-                        jwtService.extractClaims(refreshToken).getExpiration().toInstant());
+                
+                if (accessJti != null && refreshJti != null) {
+                    activeSessionService.replaceActiveSession(username, accessJti, refreshJti,
+                            jwtService.extractClaims(accessToken).getExpiration().toInstant(),
+                            jwtService.extractClaims(refreshToken).getExpiration().toInstant());
+                    log.debug("Active session registered for user: {}", username);
+                } else {
+                    log.warn("Could not register active session - token IDs are null");
+                }
             } catch (Exception e) {
-                log.warn("Failed to register active session: {}", e.getMessage());
+                log.warn("Failed to register active session (non-critical): {}", e.getMessage());
             }
 
             Cookie refreshTokenCookie = createRefreshTokenCookie(refreshToken);

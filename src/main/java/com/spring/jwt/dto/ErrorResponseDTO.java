@@ -54,9 +54,6 @@ public class ErrorResponseDTO {
     @Schema(description = "Reference documentation URL", example = "https://api-docs.example.com/errors/AUTHENTICATION_REQUIRED")
     private String documentationUrl;
 
-    /**
-     * Create error response for authentication failures
-     */
     public static ErrorResponseDTO authenticationRequired(String path, String method) {
         return ErrorResponseDTO.builder()
                 .status(401)
@@ -75,9 +72,6 @@ public class ErrorResponseDTO {
                 .build();
     }
 
-    /**
-     * Create error response for authorization failures
-     */
     public static ErrorResponseDTO accessDenied(String path, String method, String resource) {
         return ErrorResponseDTO.builder()
                 .status(403)
@@ -95,9 +89,6 @@ public class ErrorResponseDTO {
                 .build();
     }
 
-    /**
-     * Create error response for validation failures
-     */
     public static ErrorResponseDTO validationFailed(String path, String method, Map<String, String> fieldErrors) {
         return ErrorResponseDTO.builder()
                 .status(400)
@@ -116,9 +107,6 @@ public class ErrorResponseDTO {
                 .build();
     }
 
-    /**
-     * Create error response for file upload issues
-     */
     public static ErrorResponseDTO fileUploadError(String path, String method, String reason, long maxSizeMB) {
         return ErrorResponseDTO.builder()
                 .status(400)
@@ -138,9 +126,6 @@ public class ErrorResponseDTO {
                 .build();
     }
 
-    /**
-     * Create error response for resource not found
-     */
     public static ErrorResponseDTO resourceNotFound(String path, String method, String resourceType, String identifier) {
         return ErrorResponseDTO.builder()
                 .status(404)
@@ -158,9 +143,6 @@ public class ErrorResponseDTO {
                 .build();
     }
 
-    /**
-     * Create error response for server errors
-     */
     public static ErrorResponseDTO internalServerError(String path, String method, String details) {
         return ErrorResponseDTO.builder()
                 .status(500)

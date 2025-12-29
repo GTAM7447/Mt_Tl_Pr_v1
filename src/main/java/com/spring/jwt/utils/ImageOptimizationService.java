@@ -105,7 +105,6 @@ public class ImageOptimizationService {
         int currentWidth = currentImage.getWidth();
 
         byte[] compressedBytes = originalImageBytes;
-        // User requested > 1.3MB. Starting at 0.95 (High Quality).
         float quality = 0.95f;
 
         long compressStart = System.currentTimeMillis();
@@ -119,7 +118,6 @@ public class ImageOptimizationService {
             return fastAttempt;
         }
 
-        // Attempt 2: Drop to 0.85 (Medium) instead of drastic 0.70
         quality = 0.85f;
         currentImage = Thumbnails.of(currentImage).scale(0.9).asBufferedImage();
 
@@ -215,11 +213,10 @@ public class ImageOptimizationService {
      * Optimized PDF compression: Deep compression of internal images
      */
     public byte[] compressPdf(byte[] originalPdfBytes) throws IOException {
-        // NOTE: Input size validation should happen before this method if strict limits
-        // are needed.
+
         long thresholdBytes = 100 * 1024;
         if (originalPdfBytes.length < thresholdBytes) {
-            return originalPdfBytes; // Already small
+            return originalPdfBytes;
         }
 
         try (ByteArrayInputStream inputStream = new ByteArrayInputStream(originalPdfBytes);

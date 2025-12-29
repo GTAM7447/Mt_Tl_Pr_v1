@@ -152,7 +152,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         try (InputStream inputStream = getClass().getResourceAsStream("/templates/" + templateFileName)) {
             if (inputStream == null) {
                 log.error("Template file not found: {}", templateFileName);
-                return "Please enter the OTP code: {{otp}}"; // Basic fallback template
+                return "Please enter the OTP code: {{otp}}";
             }
             
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {

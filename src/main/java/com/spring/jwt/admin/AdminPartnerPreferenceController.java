@@ -91,7 +91,7 @@ public class AdminPartnerPreferenceController {
             @Valid @RequestBody PartnerPreferenceUpdateRequest request) {
         
         log.info("Admin updating partner preference for user ID: {}", userId);
-        return ResponseEntity.status(501).body(null); // Not implemented
+        return ResponseEntity.status(501).body(null);
     }
 
     @Operation(

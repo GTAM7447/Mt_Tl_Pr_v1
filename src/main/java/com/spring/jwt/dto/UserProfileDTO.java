@@ -11,13 +11,9 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserProfileDTO {
-    // Base user information
     private UserDTO user;
 
-    // Role-specific information
     private UserProfileDTO1 userProfileDTO1;
 
-
-    // User roles
     private Set<String> roles;
 }

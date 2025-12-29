@@ -52,9 +52,7 @@ public class UserDTO {
 //    private String lastName;
 
 
-
-
-    private String role; // Single role field for backward compatibility
+    private String role;
 
     public UserDTO(User user) {
         this.email = user.getEmail();
@@ -71,7 +69,6 @@ public class UserDTO {
         }
     }
 
-    // Static method to create DTO from User entity
     public static UserDTO fromEntity(User user) {
         if (user == null) {
             return null;

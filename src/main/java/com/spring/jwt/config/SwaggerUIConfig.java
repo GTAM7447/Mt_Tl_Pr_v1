@@ -22,7 +22,6 @@ public class SwaggerUIConfig {
     @Bean
     public OpenApiCustomizer adminApiCustomizer() {
         return openApi -> {
-            // Add custom styling and organization for admin endpoints
             if (openApi.getPaths() != null) {
                 openApi.getPaths().forEach((path, pathItem) -> {
                     if (path.startsWith("/api/v1/admin/")) {
@@ -37,7 +36,6 @@ public class SwaggerUIConfig {
      * Enhances admin endpoint documentation
      */
     private void enhanceAdminEndpoint(PathItem pathItem) {
-        // Add admin-specific styling and information
         Map<PathItem.HttpMethod, Operation> operations = pathItem.readOperationsMap();
         
         operations.forEach((method, operation) -> {
@@ -48,7 +46,6 @@ public class SwaggerUIConfig {
                     operation.setSummary(summary + " (Admin)");
                 }
                 
-                // Add admin-specific description enhancement
                 String description = operation.getDescription();
                 if (description != null && !description.contains("Requires ADMIN role")) {
                     operation.setDescription(description + "\n\n**⚠️ Requires ADMIN role and valid JWT token.**");

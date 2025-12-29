@@ -52,9 +52,6 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader("Authorization");
 
-        // No need to check for public URLs - Spring Security's permitAll() handles that
-        // JWT filter only processes requests that reach this point (non-public endpoints)
-
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
@@ -94,9 +91,6 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request, response);
     }
-
-
-
 
     private String getSpecificInvalidReason(String token, HttpServletRequest request) {
         try {
@@ -258,7 +252,8 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
         response.getWriter().write(json);
     }
 
-    public void setauthreq(boolean setauthreq) {
+    public void setauthreq(boolean setauthreq)
+    {
         this.setauthreq = setauthreq;
     }
 }

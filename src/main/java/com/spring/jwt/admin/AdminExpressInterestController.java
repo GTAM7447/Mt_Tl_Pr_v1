@@ -36,8 +36,6 @@ public class AdminExpressInterestController {
 
     private final ExpressInterestService service;
 
-    // ==================== INTEREST MANAGEMENT ====================
-
     @GetMapping("/{interestId}")
     @Operation(summary = "Get interest by ID (Admin)", 
                description = "Get detailed information about any interest in the system")
@@ -127,7 +125,6 @@ public class AdminExpressInterestController {
         }
     }
 
-    // ==================== STATISTICS AND ANALYTICS ====================
 
     @GetMapping("/statistics")
     @Operation(summary = "Get system statistics (Admin)", 
@@ -173,7 +170,6 @@ public class AdminExpressInterestController {
         }
     }
 
-    // ==================== BULK OPERATIONS ====================
 
     @PostMapping("/bulk/expire")
     @Operation(summary = "Expire old interests (Admin)", 
@@ -251,8 +247,6 @@ public class AdminExpressInterestController {
         }
     }
 
-    // ==================== MONITORING AND HEALTH ====================
-
     @GetMapping("/health")
     @Operation(summary = "Get interest system health (Admin)", 
                description = "Get health status of the interest system including performance metrics")
@@ -285,9 +279,6 @@ public class AdminExpressInterestController {
         }
     }
 
-    /**
-     * System health response DTO.
-     */
     @Schema(description = "System health information")
     public static class SystemHealthResponse {
         
@@ -309,23 +300,59 @@ public class AdminExpressInterestController {
         @Schema(description = "Interests created today", example = "156")
         private Long createdToday;
 
-        // Getters and setters
-        public String getStatus() { return status; }
-        public void setStatus(String status) { this.status = status; }
+        public String getStatus()
+        {
+            return status;
+        }
+
+        public void setStatus(String status)
+        {
+            this.status = status;
+        }
         
-        public Long getTotalInterests() { return totalInterests; }
-        public void setTotalInterests(Long totalInterests) { this.totalInterests = totalInterests; }
+        public Long getTotalInterests()
+        {
+            return totalInterests;
+        }
+        public void setTotalInterests(Long totalInterests)
+        {
+            this.totalInterests = totalInterests;
+        }
         
-        public Long getActiveInterests() { return activeInterests; }
-        public void setActiveInterests(Long activeInterests) { this.activeInterests = activeInterests; }
+        public Long getActiveInterests()
+        {
+            return activeInterests;
+        }
+        public void setActiveInterests(Long activeInterests)
+        { this.activeInterests = activeInterests;
+        }
         
-        public Double getSuccessRate() { return successRate; }
-        public void setSuccessRate(Double successRate) { this.successRate = successRate; }
+        public Double getSuccessRate()
+        {
+            return successRate;
+        }
+        public void setSuccessRate(Double successRate)
+        {
+            this.successRate = successRate;
+        }
         
-        public Double getResponseRate() { return responseRate; }
-        public void setResponseRate(Double responseRate) { this.responseRate = responseRate; }
+        public Double getResponseRate()
+        {
+            return responseRate;
+        }
+        public void setResponseRate(Double responseRate)
+        {
+            this.responseRate = responseRate;
+        }
         
-        public Long getCreatedToday() { return createdToday; }
-        public void setCreatedToday(Long createdToday) { this.createdToday = createdToday; }
+        public Long getCreatedToday()
+        {
+            return createdToday;
+        }
+
+        public void setCreatedToday(Long createdToday)
+        {
+            this.createdToday = createdToday;
+        }
     }
 }

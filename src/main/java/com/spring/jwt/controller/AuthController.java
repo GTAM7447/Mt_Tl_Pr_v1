@@ -1,5 +1,6 @@
 package com.spring.jwt.controller;
 
+import com.spring.jwt.aspect.Loggable;
 import com.spring.jwt.jwt.JwtConfig;
 import com.spring.jwt.utils.BaseResponseDTO;
 import jakarta.servlet.http.Cookie;
@@ -29,11 +30,13 @@ public class AuthController {
     private final JwtConfig jwtConfig;
 
     private static final String REFRESH_TOKEN_COOKIE_NAME = "refresh_token";
-    
+
     /**
-     * Logout endpoint that clears the refresh token cookie and invalidates the session
+     * Logout endpoint that clears the refresh token cookie and invalidates the
+     * session
      */
     @PostMapping("/logout")
+    @Loggable(action = "LOGOUT")
     public ResponseEntity<BaseResponseDTO> logout(HttpServletRequest request, HttpServletResponse response) {
         log.info("Processing logout request");
 
@@ -45,42 +48,41 @@ public class AuthController {
         response.addCookie(cookie);
 
         SecurityContextHolder.clearContext();
-        
+
         BaseResponseDTO responseDTO = new BaseResponseDTO();
         responseDTO.setCode(String.valueOf(HttpStatus.OK.value()));
         responseDTO.setMessage("Logout successful");
-        
+
         return ResponseEntity.ok(responseDTO);
     }
-    
+
     /**
      * Test endpoint to check cookies in the request
      */
     @GetMapping("/check-cookies")
     public ResponseEntity<Map<String, Object>> checkCookies(HttpServletRequest request) {
         Map<String, Object> response = new HashMap<>();
-        
+
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             response.put("cookieCount", cookies.length);
-            
+
             Map<String, String> cookieDetails = Arrays.stream(cookies)
-                .collect(Collectors.toMap(
-                    Cookie::getName,
-                    cookie -> {
-                        String value = cookie.getValue();
-                        if (value.length() > 10) {
-                            return value.substring(0, 5) + "..." + value.substring(value.length() - 5);
-                        }
-                        return value;
-                    }
-                ));
-            
+                    .collect(Collectors.toMap(
+                            Cookie::getName,
+                            cookie -> {
+                                String value = cookie.getValue();
+                                if (value.length() > 10) {
+                                    return value.substring(0, 5) + "..." + value.substring(value.length() - 5);
+                                }
+                                return value;
+                            }));
+
             response.put("cookies", cookieDetails);
 
             boolean hasRefreshToken = Arrays.stream(cookies)
-                .anyMatch(cookie -> REFRESH_TOKEN_COOKIE_NAME.equals(cookie.getName()));
-            
+                    .anyMatch(cookie -> REFRESH_TOKEN_COOKIE_NAME.equals(cookie.getName()));
+
             response.put("hasRefreshToken", hasRefreshToken);
         } else {
             response.put("cookieCount", 0);
@@ -89,11 +91,9 @@ public class AuthController {
         }
 
         Map<String, String> headers = new HashMap<>();
-        request.getHeaderNames().asIterator().forEachRemaining(name -> 
-            headers.put(name, request.getHeader(name))
-        );
+        request.getHeaderNames().asIterator().forEachRemaining(name -> headers.put(name, request.getHeader(name)));
         response.put("headers", headers);
-        
+
         return ResponseEntity.ok(response);
     }
-} 
+}

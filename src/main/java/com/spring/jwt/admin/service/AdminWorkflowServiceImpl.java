@@ -21,7 +21,6 @@ import com.spring.jwt.ContactDetails.dto.ContactDetailsCreateRequest;
 import com.spring.jwt.exception.BaseException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,7 +47,6 @@ public class AdminWorkflowServiceImpl implements AdminWorkflowService {
     private final ContactDetailsService contactDetailsService;
     private final CompleteProfileService completeProfileService;
 
-    // Workflow step definitions
     private static final List<WorkflowStepDefinition> WORKFLOW_STEPS = Arrays.asList(
         new WorkflowStepDefinition("USER_REGISTRATION", "User Registration", "Create user account", 1, true, false),
         new WorkflowStepDefinition("PROFILE_CREATION", "Profile Creation", "Create basic profile information", 2, true, false),
@@ -379,8 +377,6 @@ public class AdminWorkflowServiceImpl implements AdminWorkflowService {
         
         return result;
     }
-
-    // Helper methods
     
     private Integer extractUserIdFromResponse(Object response) {
         return 1;

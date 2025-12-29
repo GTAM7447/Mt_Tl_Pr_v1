@@ -15,7 +15,6 @@ import java.util.Date;
 @Data
 public class HoroscopeUpdateRequest {
 
-    // Version for optimistic locking
     @NotNull(message = "Version is required for updates to prevent conflicts")
     private Integer version;
 

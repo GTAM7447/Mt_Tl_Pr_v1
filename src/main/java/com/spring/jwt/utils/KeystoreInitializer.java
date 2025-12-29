@@ -47,12 +47,10 @@ public class KeystoreInitializer {
      * Generate the keystore.p12 file if it doesn't exist
      */
     private static void initializeKeystore() throws Exception {
-        // Get current working directory
         String currentDir = System.getProperty("user.dir");
         Path resourcesPath = Paths.get(currentDir, "src", "main", "resources");
         Path keystorePath = resourcesPath.resolve("keystore.p12");
-        
-        // Check if keystore already exists
+
         if (Files.exists(keystorePath)) {
             System.out.println("Keystore already exists at: " + keystorePath.toAbsolutePath());
             ensureKeystoreInClasspath(keystorePath);
@@ -61,7 +59,6 @@ public class KeystoreInitializer {
         
         System.out.println("Keystore not found, generating a new one");
 
-        // Create resources directory if it doesn't exist
         if (!Files.exists(resourcesPath)) {
             Files.createDirectories(resourcesPath);
             System.out.println("Created resources directory at: " + resourcesPath.toAbsolutePath());
@@ -69,7 +66,6 @@ public class KeystoreInitializer {
         
         System.out.println("Generating new keystore at: " + keystorePath.toAbsolutePath());
 
-        // Build command as array to avoid issues with spaces and special characters
         String[] command = {
             "keytool", 
             "-genkeypair", 

@@ -53,14 +53,12 @@ public class DecryptionResponseProcessor implements ResponseBodyAdvice<Object> {
             return null;
         }
 
-        // PERF: Skip expensive graph traversal for DocumentResponse classes
         if (body.getClass().getName().contains("DocumentResponseDTO") ||
                 body.getClass().getName().contains("DocumentDetailResponseDTO") ||
                 body.getClass().getName().contains("PaginatedDocumentResponseDTO")) {
             return body;
         }
 
-        // PERF: Handle ApiResponse wrapper containing Document types
         if (body instanceof ApiResponse) {
             ApiResponse<?> response = (ApiResponse<?>) body;
             Object data = response.getData();

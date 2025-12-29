@@ -40,7 +40,6 @@ public class SslConfig {
     @Bean
     public WebServerFactoryCustomizer<ConfigurableServletWebServerFactory> sslCustomizer() {
         return factory -> {
-            // Always disable SSL in this environment
             logger.info("SSL is disabled by default configuration");
             factory.setSsl(null);
         };

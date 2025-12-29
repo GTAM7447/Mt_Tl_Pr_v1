@@ -14,8 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ActiveSessionService {
 
 	private final Map<String, SessionInfo> usernameToSession = new ConcurrentHashMap<>();
-	
-	// Grace period for token validation
+
 	private static final long TOKEN_GRACE_PERIOD_SECONDS = 10;
 
 	public SessionInfo replaceActiveSession(String username, String newAccessTokenId, String newRefreshTokenId,

@@ -15,7 +15,7 @@ public class CustomUserDetails implements UserDetails {
     }
 
     public Integer getUserId() {
-        return user.getId();   // your User.id field
+        return user.getId();
     }
 
     @Override
@@ -53,5 +53,4 @@ public class CustomUserDetails implements UserDetails {
         return false;
     }
 
-    // other overridden methods...
 }

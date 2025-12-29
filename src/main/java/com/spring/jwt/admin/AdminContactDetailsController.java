@@ -52,7 +52,7 @@ public class AdminContactDetailsController {
             @Valid @RequestBody ContactDetailsCreateRequest request) {
         
         log.info("Admin creating contact details for user ID: {}", userId);
-        return ResponseEntity.status(501).body(null); // Not implemented
+        return ResponseEntity.status(501).body(null);
     }
 
     @Operation(

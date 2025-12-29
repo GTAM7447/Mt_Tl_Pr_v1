@@ -1,7 +1,5 @@
 package com.spring.jwt.profile.controller;
 
-import com.spring.jwt.aspect.Loggable;
-import com.spring.jwt.aspect.RequiresSubscription;
 import com.spring.jwt.dto.ResponseDto;
 import com.spring.jwt.profile.ProfileService;
 import com.spring.jwt.profile.dto.request.CreateProfileRequest;
@@ -62,8 +60,8 @@ public class ProfileController {
     @PostMapping
     @PreAuthorize("hasRole('USER')")
     @RateLimiter(name = "profileApi")
-    @Loggable(action = "CREATE_PROFILE")
-    @Operation(summary = "Create user profile", description = "Create a new profile for the authenticated user. Each user can only have one profile.")
+    @Operation(summary = "Create user profile",
+            description = "Create a new profile for the authenticated user. Each user can only have one profile.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Profile created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data or validation errors"),
@@ -93,7 +91,8 @@ public class ProfileController {
     @GetMapping("/me")
     @PreAuthorize("hasRole('USER')")
     @RateLimiter(name = "profileApi")
-    @Operation(summary = "Get current user profile", description = "Retrieve the profile of the currently authenticated user")
+    @Operation(summary = "Get current user profile",
+            description = "Retrieve the profile of the currently authenticated user")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Profile retrieved successfully"),
             @ApiResponse(responseCode = "404", description = "Profile not found for current user"),
@@ -110,22 +109,125 @@ public class ProfileController {
     }
 
     /**
-     * Search profiles with various criteria.
+     * Get profile by user ID (Admin only).
+     * GET /api/v1/profiles/user/{userId}.
+     *
+     * @param userId the user ID
+     * @return the profile details
+     */
+    @GetMapping("/user/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @RateLimiter(name = "profileApi")
+    @Operation(summary = "Get profile by user ID (Admin only)",
+            description = "Retrieve a user's profile by user ID. Only accessible by administrators.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Profile retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Profile not found for the specified user"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated"),
+            @ApiResponse(responseCode = "403", description = "User not authorized (Admin role required)"),
+            @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
+    })
+    public ResponseEntity<ResponseDto<ProfileResponse>> getProfileByUserId(
+            @PathVariable @NotNull @Positive @Parameter(description = "User ID") Integer userId) {
+
+        ProfileResponse response = profileService.getProfileByUserId(userId);
+
+        return ResponseEntity.ok(
+                ResponseDto.success("Profile retrieved successfully", response));
+    }
+
+    /**
+     * Get public profile view by profile ID (no authentication required).
+     * GET /api/v1/profiles/{profileId}/public
+     *
+     * @param profileId the profile ID
+     * @return limited public profile view
+     */
+    @GetMapping("/{profileId}/public")
+    @RateLimiter(name = "profileApi")
+    @Operation(summary = "Get public profile view",
+            description = "Retrieve limited public information of a profile. No authentication required.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Public profile retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Profile not found"),
+            @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
+    })
+    public ResponseEntity<ResponseDto<PublicProfileView>> getPublicProfile(
+            @PathVariable @NotNull @Positive @Parameter(description = "Profile ID") Integer profileId) {
+
+        PublicProfileView response = profileService.getPublicProfileById(profileId);
+
+        return ResponseEntity.ok(
+                ResponseDto.success("Public profile retrieved successfully", response));
+    }
+
+    /**
+     * Browse all profiles (admin only).
+     * GET /api/v1/profiles
+     *
+     * @param page      page number (0-indexed)
+     * @param size      page size
+     * @param sort      sort field (default: userProfileId)
+     * @param direction sort direction (default: DESC)
+     * @return paginated list of profiles
+     */
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    @RateLimiter(name = "profileApi")
+    @Operation(summary = "Browse all profiles (Admin only)",
+            description = "Retrieve paginated list of all profiles. Only accessible by administrators.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Profiles retrieved successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid pagination or sort parameters"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated"),
+            @ApiResponse(responseCode = "403", description = "User not authorized (Admin role required)"),
+            @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
+    })
+    public ResponseEntity<ResponseDto<Page<ProfileListView>>> getAllProfiles(
+            @RequestParam(defaultValue = "0")
+            @Min(value = 0, message = "Page index must be 0 or greater")
+            @Parameter(description = "Page number (0-indexed)") int page,
+
+            @RequestParam(defaultValue = "10")
+            @Min(value = 1, message = "Page size must be at least 1")
+            @Max(value = 30, message = "Page size cannot exceed 30")
+            @Parameter(description = "Page size (1-30)") int size,
+
+            @RequestParam(defaultValue = "userProfileId")
+            @Parameter(description = "Sort field (userProfileId, createdAt, age, height)") String sort,
+
+            @RequestParam(defaultValue = "DESC")
+            @Parameter(description = "Sort direction") Sort.Direction direction) {
+
+        if (!sort.matches("^(userProfileId|createdAt|age|height)$")) {
+            throw new IllegalArgumentException("Invalid sort field: " + sort);
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sort));
+        Page<ProfileListView> profiles = profileService.getAllProfiles(pageable);
+
+        return ResponseEntity.ok(
+                ResponseDto.success("Profiles retrieved successfully", profiles));
+    }
+
+    /**
+     * Search profiles with criteria.
      * GET /api/v1/profiles/search
      *
-     * @param criteria  the search criteria
-     * @param page      the page number
-     * @param size      the page size
-     * @param sort      the field to sort by
-     * @param direction the sort direction
-     * @return a page of profiles matching the criteria
+     * Supports filtering by gender, religion, caste, district, age range, etc.
+     *
+     * @param criteria  search criteria
+     * @param page      page number
+     * @param size      page size
+     * @param sort      sort field
+     * @param direction sort direction
+     * @return paginated search results
      */
     @GetMapping("/search")
     @PreAuthorize("hasRole('USER')")
     @RateLimiter(name = "profileApi")
-    @RequiresSubscription
-    @Loggable(action = "SEARCH_PROFILES")
-    @Operation(summary = "Search profiles with criteria", description = "Search profiles using various filters like gender, religion, caste, age range, etc.")
+    @Operation(summary = "Search profiles with criteria",
+            description = "Search profiles using various filters like gender, religion, caste, age range, etc.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Profiles retrieved successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid search criteria or pagination parameters"),
@@ -152,34 +254,37 @@ public class ProfileController {
     }
 
     /**
-     * Get profile by user ID (Admin only).
-     * GET /api/v1/profiles/user/{userId}.
+     * Browse profiles by gender.
+     * GET /api/v1/profiles/browse/gender/{gender}
      *
-     * @param userId the user ID
-     * @return the profile details
+     * Returns different views based on authentication status.
+     *
+     * @param gender the gender (MALE/FEMALE/OTHER)
+     * @param page   page number
+     * @param size   page size
+     * @return paginated profiles
      */
-    @GetMapping("/user/{userId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/browse/gender/{gender}")
     @RateLimiter(name = "profileApi")
-    @Loggable(action = "ADMIN_VIEW_PROFILE")
-    @Operation(summary = "Get profile by user ID (Admin only)", description = "Retrieve a user's profile by user ID. Only accessible by administrators.")
+    @Operation(summary = "Browse profiles by gender",
+            description = "Browse profiles filtered by gender. Returns different views based on authentication status.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Profile retrieved successfully"),
-            @ApiResponse(responseCode = "404", description = "Profile not found for the specified user"),
-            @ApiResponse(responseCode = "401", description = "User not authenticated"),
-            @ApiResponse(responseCode = "403", description = "User not authorized (Admin role required)"),
+            @ApiResponse(responseCode = "200", description = "Profiles retrieved successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid gender or pagination parameters"),
             @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
     })
-    public ResponseEntity<ResponseDto<ProfileResponse>> getProfileByUserId(
-            @PathVariable @NotNull @Positive @Parameter(description = "User ID") Integer userId) {
+    public ResponseEntity<ResponseDto<Page<?>>> browseByGender(
+            @PathVariable @NotNull @Parameter(description = "Gender (MALE/FEMALE/OTHER)") String gender,
+            @RequestParam(defaultValue = "0") @Min(0) @Parameter(description = "Page number") int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(50) @Parameter(description = "Page size") int size) {
 
-        ProfileResponse response = profileService.getProfileByUserId(userId);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "userProfileId"));
+        Page<?> profiles = profileService.browseProfilesByGender(gender, pageable);
 
         return ResponseEntity.ok(
-                ResponseDto.success("Profile retrieved successfully", response));
+                ResponseDto.success("Profiles retrieved successfully", profiles));
     }
 
-    // ...
     /**
      * Update current user's profile (partial update - PATCH semantics).
      * PATCH /api/v1/profiles/me
@@ -193,8 +298,8 @@ public class ProfileController {
     @PatchMapping("/me")
     @PreAuthorize("hasRole('USER')")
     @RateLimiter(name = "profileApi")
-    @Loggable(action = "UPDATE_PROFILE")
-    @Operation(summary = "Update current user's profile", description = "Update the authenticated user's profile with partial data. Requires version for optimistic locking.")
+    @Operation(summary = "Update current user's profile",
+            description = "Update the authenticated user's profile with partial data. Requires version for optimistic locking.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Profile updated successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input data or validation errors"),
@@ -227,8 +332,8 @@ public class ProfileController {
     @DeleteMapping("/me")
     @PreAuthorize("hasRole('USER')")
     @RateLimiter(name = "profileApi")
-    @Loggable(action = "DELETE_PROFILE")
-    @Operation(summary = "Delete current user's profile", description = "Soft delete the authenticated user's profile. Profile is marked as deleted but preserved in database.")
+    @Operation(summary = "Delete current user's profile",
+            description = "Soft delete the authenticated user's profile. Profile is marked as deleted but preserved in database.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Profile deleted successfully"),
             @ApiResponse(responseCode = "404", description = "Profile not found for current user"),
@@ -255,7 +360,8 @@ public class ProfileController {
      */
     @GetMapping("/stats/gender/{gender}")
     @RateLimiter(name = "profileApi")
-    @Operation(summary = "Get profile count by gender", description = "Get the total count of active profiles for a specific gender")
+    @Operation(summary = "Get profile count by gender",
+            description = "Get the total count of active profiles for a specific gender")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Count retrieved successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid gender parameter"),

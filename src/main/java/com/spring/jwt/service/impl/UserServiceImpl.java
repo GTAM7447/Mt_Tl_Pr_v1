@@ -1,6 +1,5 @@
 package com.spring.jwt.service.impl;
 
-
 import com.spring.jwt.CompleteProfile.CompleteProfileRepository;
 import com.spring.jwt.ContactDetails.ContactDetailsRepository;
 import com.spring.jwt.Document.DocumentRepository;
@@ -30,7 +29,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
-import org.springframework.mail.javamail.JavaMailSender;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -51,8 +50,6 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
 
-    private final JavaMailSender mailSender;
-
     private final ContactDetailsRepository contactRepository;
 
     private final DocumentRepository documentRepository;
@@ -66,7 +63,6 @@ public class UserServiceImpl implements UserService {
     private final PartnerPreferenceRepository partnerPreferenceRepository;
 
     private final CompleteProfileRepository completeProfileRepository;
-
 
     private final UserProfileRepository userProfileRepository;
 
@@ -109,10 +105,11 @@ public class UserServiceImpl implements UserService {
     private User insertUser(UserDTO userDTO) {
         Optional<EmailVerification> emailVerificationOpt = emailVerificationRepo.findByEmail(userDTO.getEmail());
 
-//        if (emailVerificationOpt.isEmpty() ||
-//                EmailVerification.STATUS_NOT_VERIFIED.equals(emailVerificationOpt.get().getStatus())) {
-//            throw new EmailNotVerifiedException("Email not verified");
-//        }
+        // if (emailVerificationOpt.isEmpty() ||
+        // EmailVerification.STATUS_NOT_VERIFIED.equals(emailVerificationOpt.get().getStatus()))
+        // {
+        // throw new EmailNotVerifiedException("Email not verified");
+        // }
 
         User user = new User();
         user.setEmail(userDTO.getEmail());
@@ -151,8 +148,8 @@ public class UserServiceImpl implements UserService {
     private void createUserProfile(User user, UserDTO userDTO) {
         UserProfile userProfile = new UserProfile();
         userProfile.setGender(userDTO.getGender());
-//        userProfile.setMail(userDTO.getEmail());
-//        userProfile.setMobileNumber(userDTO.getMobileNumber());
+        // userProfile.setMail(userDTO.getEmail());
+        // userProfile.setMobileNumber(userDTO.getMobileNumber());
         userProfile.setUser(user);
         userProfileRepository.save(userProfile);
 
@@ -160,7 +157,7 @@ public class UserServiceImpl implements UserService {
         contactDetails.setUser(user);
         contactRepository.save(contactDetails);
 
-        Document document =new Document();
+        Document document = new Document();
         document.setUser(user);
         documentRepository.save(document);
 
@@ -201,16 +198,18 @@ public class UserServiceImpl implements UserService {
         if (!roles.contains(userDTO.getRole())) {
             throw new BaseException(String.valueOf(HttpStatus.BAD_REQUEST.value()), "Invalid role");
         }
-        Optional<User> mobileNumber= userRepository.findByMobileNumber(userDTO.getMobileNumber());
-        if(!ObjectUtils.isEmpty(mobileNumber)){
-            throw new BaseException(String.valueOf(HttpStatus.BAD_REQUEST.value()), "Mobile Number is already registered !!");
+        Optional<User> mobileNumber = userRepository.findByMobileNumber(userDTO.getMobileNumber());
+        if (!ObjectUtils.isEmpty(mobileNumber)) {
+            throw new BaseException(String.valueOf(HttpStatus.BAD_REQUEST.value()),
+                    "Mobile Number is already registered !!");
         }
     }
 
     @Override
     public ResponseDto forgotPass(String email, String resetPasswordLink, String domain) {
         User user = userRepository.findByEmail(email);
-        if (user == null) throw new UserNotFoundExceptions("User not found");
+        if (user == null)
+            throw new UserNotFoundExceptions("User not found");
 
         emailService.sendResetPasswordEmail(email, resetPasswordLink, domain);
 
@@ -341,7 +340,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean isSameAsOldPassword(String token, String newPassword) {
         User user = userRepository.findByResetPasswordToken(token);
-        if (user == null) throw new UserNotFoundExceptions("Invalid or expired token");
+        if (user == null)
+            throw new UserNotFoundExceptions("Invalid or expired token");
 
         return passwordEncoder.matches(newPassword, user.getPassword());
     }

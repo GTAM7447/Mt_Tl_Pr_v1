@@ -1,5 +1,7 @@
 package com.spring.jwt.profile.controller;
 
+import com.spring.jwt.aspect.Loggable;
+import com.spring.jwt.aspect.RequiresSubscription;
 import com.spring.jwt.dto.ResponseDto;
 import com.spring.jwt.profile.ProfileService;
 import com.spring.jwt.profile.dto.request.CreateProfileRequest;
@@ -143,8 +145,9 @@ public class ProfileController {
      * @param profileId the profile ID
      * @return limited public profile view
      */
-    @GetMapping("/{profileId}/public")
+    @GetMapping("/public/{profileId}")
     @RateLimiter(name = "profileApi")
+//    @RequiresSubscription
     @Operation(summary = "Get public profile view",
             description = "Retrieve limited public information of a profile. No authentication required.")
     @ApiResponses(value = {
@@ -226,6 +229,8 @@ public class ProfileController {
     @GetMapping("/search")
     @PreAuthorize("hasRole('USER')")
     @RateLimiter(name = "profileApi")
+//    @RequiresSubscription
+    @Loggable(action = "SEARCH_PROFILES")
     @Operation(summary = "Search profiles with criteria",
             description = "Search profiles using various filters like gender, religion, caste, age range, etc.")
     @ApiResponses(value = {

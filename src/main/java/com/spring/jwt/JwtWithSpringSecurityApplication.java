@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.info.License;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import java.security.Security;
@@ -14,6 +15,7 @@ import java.security.Security;
 
 @SpringBootApplication
 @EnableScheduling
+@EnableAspectJAutoProxy
 @EnableMethodSecurity(
     securedEnabled = true,
     jsr250Enabled = true,

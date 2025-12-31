@@ -149,7 +149,7 @@ public class AppConfig {
                 .requestMatchers("/api/v1/users/register").permitAll()
                 .requestMatchers("/api/v1/users/password/**").permitAll()
                 .requestMatchers("/api/users/**").permitAll()
-                .requestMatchers("/api/v1/profiles/2/public/**").permitAll()
+                .requestMatchers("/api/v1/profiles/public/**").permitAll()
 
                 .requestMatchers("/api/v1/exam/**").permitAll()
 

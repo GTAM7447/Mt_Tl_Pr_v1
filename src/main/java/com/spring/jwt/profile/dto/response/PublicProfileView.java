@@ -19,6 +19,9 @@ public class PublicProfileView {
     @Schema(description = "User profile ID", example = "1")
     private Integer userProfileId;
     
+    @Schema(description = "Complete profile ID", example = "1")
+    private Integer completeProfileId;
+    
     @Schema(description = "First name", example = "John")
     private String firstName;
     

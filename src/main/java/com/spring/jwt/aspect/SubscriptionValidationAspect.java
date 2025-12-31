@@ -29,10 +29,14 @@ public class SubscriptionValidationAspect {
 
     @Before("@annotation(com.spring.jwt.aspect.RequiresSubscription)")
     public void validateSubscription(JoinPoint joinPoint) {
+        log.debug("SubscriptionValidationAspect triggered for method: {}", joinPoint.getSignature().getName());
+        
         String email = getCurrentUserEmail();
+        log.debug("Validating subscription for user: {}", email);
 
         User user = userRepository.findByEmail(email);
         if (user == null) {
+            log.warn("User not found with email: {}", email);
             throw new UserNotFoundExceptions("User not found: " + email);
         }
 
@@ -40,28 +44,51 @@ public class SubscriptionValidationAspect {
             log.warn("Access denied: User {} attempted to access premium feature without active subscription", email);
             throw new SubscriptionRequiredException("Active subscription required for this feature.");
         }
+        
+        log.debug("Subscription validation passed for user: {}", email);
     }
 
     private boolean hasActiveSubscription(Integer userId) {
         Optional<UserCredit> userCreditOpt = userCreditRepository.findByUserId(userId);
 
         if (userCreditOpt.isEmpty()) {
+            log.debug("No user credit found for userId: {}", userId);
             return false;
         }
 
         UserCredit userCredit = userCreditOpt.get();
-        if (userCredit.getEndDate() == null || userCredit.getEndDate().isBefore(LocalDate.now())) {
+        LocalDate today = LocalDate.now();
+        
+        if (userCredit.getEndDate() == null) {
+            log.debug("User {} has no end date set for credits", userId);
+            return false;
+        }
+        
+        if (userCredit.getEndDate().isBefore(today)) {
+            log.debug("User {} subscription expired on {}", userId, userCredit.getEndDate());
             return false;
         }
 
+        log.debug("User {} has active subscription until {}", userId, userCredit.getEndDate());
         return true;
     }
 
     private String getCurrentUserEmail() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        
         if (auth == null || !auth.isAuthenticated()) {
+            log.warn("No authentication found in security context");
             throw new UserNotFoundExceptions("User not authenticated");
         }
-        return auth.getName();
+        
+        String username = auth.getName();
+        
+        // Check if user is anonymous
+        if ("anonymousUser".equals(username)) {
+            log.warn("Anonymous user attempted to access protected resource");
+            throw new UserNotFoundExceptions("Authentication required. Please log in to access this feature.");
+        }
+        
+        return username;
     }
 }

@@ -15,13 +15,16 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/admin/complete-profile")
@@ -97,12 +100,12 @@ public class AdminCompleteProfileController {
         log.info("Admin retrieving all complete profiles - page: {}, size: {}, sortBy: {}, sortDir: {}", 
                 page, size, sortBy, sortDir);
 
-        org.springframework.data.domain.Sort sort = sortDir.equalsIgnoreCase("desc") 
-            ? org.springframework.data.domain.Sort.by(sortBy).descending()
-            : org.springframework.data.domain.Sort.by(sortBy).ascending();
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, sort);
+        Sort sort = sortDir.equalsIgnoreCase("desc")
+            ? Sort.by(sortBy).descending()
+            : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
         
-        org.springframework.data.domain.Page<CompleteProfileResponse> profilePage = completeProfileService.getAllCompleteProfiles(pageable);
+        Page<CompleteProfileResponse> profilePage = completeProfileService.getAllCompleteProfiles(pageable);
         return ResponseEntity.ok(profilePage.getContent());
     }
 
@@ -177,8 +180,8 @@ public class AdminCompleteProfileController {
         
         log.info("Admin retrieving top profiles by completion score - page: {}, size: {}", page, size);
         
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
-        org.springframework.data.domain.Page<CompleteProfileResponse> profilePage = completeProfileService.getTopProfilesByScore(pageable);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<CompleteProfileResponse> profilePage = completeProfileService.getTopProfilesByScore(pageable);
         return ResponseEntity.ok(profilePage.getContent());
     }
 }

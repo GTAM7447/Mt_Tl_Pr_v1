@@ -1,7 +1,9 @@
 package com.spring.jwt.profile.mapper;
 
+import com.spring.jwt.CompleteProfile.CompleteProfileRepository;
 import com.spring.jwt.Document.DocumentRepository;
 import com.spring.jwt.Enums.DocumentType;
+import com.spring.jwt.entity.CompleteProfile;
 import com.spring.jwt.entity.Document;
 import com.spring.jwt.entity.Enums.Gender;
 import com.spring.jwt.entity.Enums.Status;
@@ -25,6 +27,7 @@ import java.util.Optional;
 public class ProfileDtoMapper {
 
     private final DocumentRepository documentRepository;
+    private final CompleteProfileRepository completeProfileRepository;
 
     public UserProfile toEntity(CreateProfileRequest request, User user) {
         UserProfile profile = new UserProfile();
@@ -144,9 +147,11 @@ public class ProfileDtoMapper {
 
     public PublicProfileView toPublicView(UserProfile profile) {
         ProfilePhotoData photoData = getProfilePhotoData(profile.getUser().getId());
+        Integer completeProfileId = getCompleteProfileId(profile.getUser().getId());
         
         return PublicProfileView.builder()
                 .userProfileId(profile.getUserProfileId())
+                .completeProfileId(completeProfileId)
                 .firstName(profile.getFirstName())
                 .age(profile.getAge())
                 .gender(profile.getGender().name())
@@ -164,9 +169,11 @@ public class ProfileDtoMapper {
 
     public ProfileListView toListView(UserProfile profile) {
         ProfilePhotoData photoData = getProfilePhotoData(profile.getUser().getId());
+        Integer completeProfileId = getCompleteProfileId(profile.getUser().getId());
         
         return ProfileListView.builder()
                 .userProfileId(profile.getUserProfileId())
+                .completeProfileId(completeProfileId)
                 .firstName(profile.getFirstName())
                 .lastName(profile.getLastName())
                 .age(profile.getAge())
@@ -201,6 +208,20 @@ public class ProfileDtoMapper {
         } catch (Exception e) {
             log.warn("Error fetching profile photo for user {}: {}", userId, e.getMessage());
             return new ProfilePhotoData(null, null, false);
+        }
+    }
+
+    /**
+     * Helper method to fetch complete profile ID by user ID
+     */
+    private Integer getCompleteProfileId(Integer userId) {
+        try {
+            return completeProfileRepository.findByUser_Id(userId)
+                    .map(CompleteProfile::getCompleteProfileId)
+                    .orElse(null);
+        } catch (Exception e) {
+            log.warn("Error fetching complete profile ID for user {}: {}", userId, e.getMessage());
+            return null;
         }
     }
 

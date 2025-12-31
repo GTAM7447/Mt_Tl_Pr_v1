@@ -104,6 +104,28 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", ex.getMessage(), request);
     }
 
+    @ExceptionHandler(SubscriptionRequiredException.class)
+    public ResponseEntity<ErrorResponseDTO> handleSubscriptionRequiredException(SubscriptionRequiredException ex,
+            HttpServletRequest request) {
+        log.warn("Subscription required: {}", ex.getMessage());
+        return buildResponse(HttpStatus.PAYMENT_REQUIRED, "SUBSCRIPTION_REQUIRED", 
+            ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(UserNotFoundExceptions.class)
+    public ResponseEntity<ErrorResponseDTO> handleUserNotFoundException(UserNotFoundExceptions ex,
+            HttpServletRequest request) {
+        log.warn("User not found: {}", ex.getMessage());
+        
+        // Check if it's an authentication issue
+        if (ex.getMessage().contains("not authenticated") || ex.getMessage().contains("log in")) {
+            return buildResponse(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED", 
+                ex.getMessage(), request);
+        }
+        
+        return buildResponse(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", ex.getMessage(), request);
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponseDTO> handleRuntimeException(RuntimeException ex,
             HttpServletRequest request) {
@@ -112,9 +134,13 @@ public class GlobalExceptionHandler {
         // Check if it's a specific business logic error
         String message = ex.getMessage();
         if (message != null) {
-            if (message.contains("Profile not found") || message.contains("User not found")) {
+            if (message.contains("Profile not found")) {
                 return buildResponse(HttpStatus.NOT_FOUND, "PROFILE_NOT_FOUND", 
-                    "The target user's profile is not complete. Please try again later.", request);
+                    "Profile not found. The requested profile does not exist or has been deleted.", request);
+            }
+            if (message.contains("User not found")) {
+                return buildResponse(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", 
+                    "User not found. The requested user does not exist.", request);
             }
             if (message.contains("already exists") || message.contains("duplicate")) {
                 return buildResponse(HttpStatus.CONFLICT, "INTEREST_ALREADY_EXISTS", 

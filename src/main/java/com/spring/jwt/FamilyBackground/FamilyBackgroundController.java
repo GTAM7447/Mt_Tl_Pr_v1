@@ -137,35 +137,35 @@ public class FamilyBackgroundController {
      * @param direction sort direction
      * @return paginated list of family backgrounds
      */
-    @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Browse all family backgrounds (Admin only)", 
-               description = "Retrieve paginated list of all family backgrounds")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Family backgrounds retrieved successfully"),
-        @ApiResponse(responseCode = "401", description = "User not authenticated"),
-        @ApiResponse(responseCode = "403", description = "Admin access required")
-    })
-    public ResponseEntity<ResponseDto<Page<FamilyBackgroundResponse>>> getAllFamilyBackgrounds(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "familyBackgroundId") String sort,
-            @RequestParam(defaultValue = "DESC") Sort.Direction direction)
-    {
-        if (!sort.matches("^(familyBackgroundId|fathersName|createdAt)$")) {
-            throw new IllegalArgumentException("Invalid sort field: " + sort);
-        }
-
-        if (size > 50) {
-            size = 50;
-        }
-        
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sort));
-        Page<FamilyBackgroundResponse> familyBackgrounds = familyBackgroundService.getAllFamilyBackgrounds(pageable);
-        
-        return ResponseEntity.ok(
-                ResponseDto.success("Family backgrounds retrieved successfully", familyBackgrounds));
-    }
+//    @GetMapping
+//    @PreAuthorize("hasRole('ADMIN')")
+//    @Operation(summary = "Browse all family backgrounds (Admin only)",
+//               description = "Retrieve paginated list of all family backgrounds")
+//    @ApiResponses(value = {
+//        @ApiResponse(responseCode = "200", description = "Family backgrounds retrieved successfully"),
+//        @ApiResponse(responseCode = "401", description = "User not authenticated"),
+//        @ApiResponse(responseCode = "403", description = "Admin access required")
+//    })
+//    public ResponseEntity<ResponseDto<Page<FamilyBackgroundResponse>>> getAllFamilyBackgrounds(
+//            @RequestParam(defaultValue = "0") int page,
+//            @RequestParam(defaultValue = "20") int size,
+//            @RequestParam(defaultValue = "familyBackgroundId") String sort,
+//            @RequestParam(defaultValue = "DESC") Sort.Direction direction)
+//    {
+//        if (!sort.matches("^(familyBackgroundId|fathersName|createdAt)$")) {
+//            throw new IllegalArgumentException("Invalid sort field: " + sort);
+//        }
+//
+//        if (size > 50) {
+//            size = 50;
+//        }
+//
+//        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sort));
+//        Page<FamilyBackgroundResponse> familyBackgrounds = familyBackgroundService.getAllFamilyBackgrounds(pageable);
+//
+//        return ResponseEntity.ok(
+//                ResponseDto.success("Family backgrounds retrieved successfully", familyBackgrounds));
+//    }
 
     /**
      * Update the authenticated user's family background.

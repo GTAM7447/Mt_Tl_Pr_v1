@@ -198,40 +198,6 @@ public class DocumentController
         }
 
         /**
-         * Get documents with pagination support
-         *
-         * Business Logic:
-         * 1. Validate pagination parameters
-         * 2. Apply pagination logic
-         * 3. Return subset of documents
-         * 4. Useful for large document collections
-         */
-        @Operation(summary = "Get documents with pagination", description = "Retrieve documents for the current user with pagination support")
-        @GetMapping("/user/paginated")
-        public ResponseEntity<ApiResponse<PaginatedDocumentResponseDTO>> getDocumentsPaginated
-        (
-                        @Parameter(description = "Page number (0-based)")
-                        @RequestParam(defaultValue = "0")
-                        @Min(0) int page,
-                        @Parameter(description = "Page size (1-50)")
-                        @RequestParam(defaultValue = "10")
-                        @Min(value = 1, message = "Page size must be at least 1")
-                        @Max(value = 30, message = "Page size cannot exceed 30") int size
-        )
-        {
-
-                Integer userId = SecurityUtil.getCurrentUserId();
-                log.debug("Paginated request: user={}, page={}, size={}", userId, page, size);
-
-                PaginatedDocumentResponseDTO response = documentService.getDocumentsPaginated(userId, page, size);
-
-                return ResponseEntity.ok(ApiResponse.success(
-                                String.format("Retrieved page %d with %d documents (total: %d)",
-                                                page, response.getNumberOfElements(), response.getTotalElements()),
-                                response));
-        }
-
-        /**
          * Get documents by multiple types
          *
          * Business Logic:

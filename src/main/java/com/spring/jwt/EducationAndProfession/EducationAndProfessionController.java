@@ -161,35 +161,35 @@ public class EducationAndProfessionController
         return ResponseEntity.ok(ResponseDto.success("Education and profession retrieved successfully", response));
     }
 
-    @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Get all education and profession records", 
-               description = "Retrieve all education and profession records with pagination (Admin only)")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Education and profession records retrieved successfully"),
-        @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required"),
-        @ApiResponse(responseCode = "403", description = "Forbidden - Admin role required")
-    })
-    public ResponseEntity<ResponseDto<Page<EducationAndProfessionResponse>>> getAllEducationAndProfession(
-            @Parameter(description = "Page number (0-based)", example = "0")
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            
-            @Parameter(description = "Page size", example = "20")
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
-            
-            @Parameter(description = "Sort field", example = "createdAt")
-            @RequestParam(defaultValue = "createdAt") String sortBy,
-            
-            @Parameter(description = "Sort direction", example = "DESC")
-            @RequestParam(defaultValue = "DESC") Sort.Direction sortDir) {
-        
-        log.debug("Admin fetching all education and profession records - page: {}, size: {}", page, size);
-        
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDir, sortBy));
-        Page<EducationAndProfessionResponse> response = educationAndProfessionService.getAllEducationAndProfession(pageable);
-        
-        return ResponseEntity.ok(ResponseDto.success("Education and profession records retrieved successfully", response));
-    }
+//    @GetMapping
+//    @PreAuthorize("hasRole('ADMIN')")
+//    @Operation(summary = "Get all education and profession records",
+//               description = "Retrieve all education and profession records with pagination (Admin only)")
+//    @ApiResponses(value = {
+//        @ApiResponse(responseCode = "200", description = "Education and profession records retrieved successfully"),
+//        @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required"),
+//        @ApiResponse(responseCode = "403", description = "Forbidden - Admin role required")
+//    })
+//    public ResponseEntity<ResponseDto<Page<EducationAndProfessionResponse>>> getAllEducationAndProfession(
+//            @Parameter(description = "Page number (0-based)", example = "0")
+//            @RequestParam(defaultValue = "0") @Min(0) int page,
+//
+//            @Parameter(description = "Page size", example = "20")
+//            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+//
+//            @Parameter(description = "Sort field", example = "createdAt")
+//            @RequestParam(defaultValue = "createdAt") String sortBy,
+//
+//            @Parameter(description = "Sort direction", example = "DESC")
+//            @RequestParam(defaultValue = "DESC") Sort.Direction sortDir) {
+//
+//        log.debug("Admin fetching all education and profession records - page: {}, size: {}", page, size);
+//
+//        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDir, sortBy));
+//        Page<EducationAndProfessionResponse> response = educationAndProfessionService.getAllEducationAndProfession(pageable);
+//
+//        return ResponseEntity.ok(ResponseDto.success("Education and profession records retrieved successfully", response));
+//    }
 
     @GetMapping("/search")
     @PreAuthorize("hasRole('ADMIN')")

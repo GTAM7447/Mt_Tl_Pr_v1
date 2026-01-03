@@ -245,19 +245,19 @@ public class DocumentServiceImpl implements DocumentService {
         }
     }
 
-    @Override
-    public PaginatedDocumentResponseDTO getDocumentsPaginated(Integer userId, int page, int size)
-    {
-        log.debug("Fetching documents for user {} (page: {}, size: {})", userId, page, size);
-
-        documentServiceHelper.validateUserId(userId);
-        documentServiceHelper.validatePaginationParameters(page, size, documentProperties.getDatabase().getBatchSize());
-
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Document> documentPage = documentRepository.findDocumentsByUserIdWithPagination(userId, pageable);
-
-        return documentResponseMapper.toPaginatedResponseDTO(documentPage);
-    }
+//    @Override
+//    public PaginatedDocumentResponseDTO getDocumentsPaginated(Integer userId, int page, int size)
+//    {
+//        log.debug("Fetching documents for user {} (page: {}, size: {})", userId, page, size);
+//
+//        documentServiceHelper.validateUserId(userId);
+//        documentServiceHelper.validatePaginationParameters(page, size, documentProperties.getDatabase().getBatchSize());
+//
+//        Pageable pageable = PageRequest.of(page, size);
+//        Page<Document> documentPage = documentRepository.findDocumentsByUserIdWithPagination(userId, pageable);
+//
+//        return documentResponseMapper.toPaginatedResponseDTO(documentPage);
+//    }
 
     @Override
     public DocumentResponseDTO replaceDocument(Integer userId, MultipartFile file, DocumentType documentType,

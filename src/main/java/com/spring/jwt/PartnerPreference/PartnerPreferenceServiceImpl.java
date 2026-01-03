@@ -120,15 +120,6 @@ public class PartnerPreferenceServiceImpl implements PartnerPreferenceService {
         return mapper.toResponse(partnerPreference);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Page<PartnerPreferenceResponse> getAllPartnerPreferences(Pageable pageable) {
-        log.debug("Admin fetching all partner preferences, page: {}", pageable.getPageNumber());
-
-        Page<PartnerPreference> partnerPreferences = partnerPreferenceRepo.findAllWithUser(pageable);
-        
-        return partnerPreferences.map(mapper::toResponse);
-    }
 
     @Override
     @Transactional(readOnly = true)

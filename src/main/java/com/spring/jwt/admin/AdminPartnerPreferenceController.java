@@ -95,38 +95,6 @@ public class AdminPartnerPreferenceController {
     }
 
     @Operation(
-        summary = "Get all partner preferences (Admin)",
-        description = "Admin can retrieve all users' partner preference details with pagination"
-    )
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Partner preferences retrieved successfully"),
-        @ApiResponse(responseCode = "403", description = "Access denied - Admin role required")
-    })
-    @GetMapping("/all")
-    public ResponseEntity<List<PartnerPreferenceResponse>> getAllPartnerPreferences(
-            @Parameter(description = "Page number (0-based)")
-            @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page number cannot be negative") int page,
-            @Parameter(description = "Page size")
-            @RequestParam(defaultValue = "10") @Min(value = 1, message = "Page size must be positive") int size,
-            @Parameter(description = "Sort field")
-            @RequestParam(defaultValue = "partnerPreferenceId") String sortBy,
-            @Parameter(description = "Sort direction (asc/desc)")
-            @RequestParam(defaultValue = "asc") String sortDir) {
-        
-        log.info("Admin retrieving all partner preferences - page: {}, size: {}, sortBy: {}, sortDir: {}", 
-                page, size, sortBy, sortDir);
-
-        org.springframework.data.domain.Sort sort = sortDir.equalsIgnoreCase("desc") 
-            ? org.springframework.data.domain.Sort.by(sortBy).descending()
-            : org.springframework.data.domain.Sort.by(sortBy).ascending();
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, sort);
-        
-        org.springframework.data.domain.Page<PartnerPreferenceResponse> preferencePage = 
-            partnerPreferenceService.getAllPartnerPreferences(pageable);
-        return ResponseEntity.ok(preferencePage.getContent());
-    }
-
-    @Operation(
         summary = "Delete partner preference (Admin)",
         description = "Admin can soft delete any user's partner preference details"
     )

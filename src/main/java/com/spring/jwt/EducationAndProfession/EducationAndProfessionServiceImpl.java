@@ -156,16 +156,6 @@ public class EducationAndProfessionServiceImpl implements EducationAndProfession
 
     @Override
     @Transactional(readOnly = true)
-    public Page<EducationAndProfessionResponse> getAllEducationAndProfession(Pageable pageable) {
-        log.debug("Admin fetching all education and profession records, page: {}", pageable.getPageNumber());
-
-        Page<EducationAndProfession> educationAndProfessionRecords = educationAndProfessionRepo.findAllWithUser(pageable);
-        
-        return educationAndProfessionRecords.map(mapper::toResponse);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public Page<EducationAndProfessionResponse> searchEducationAndProfession(
             String occupation, String education, Integer minIncome, 
             Integer maxIncome, String workLocation, Pageable pageable) {

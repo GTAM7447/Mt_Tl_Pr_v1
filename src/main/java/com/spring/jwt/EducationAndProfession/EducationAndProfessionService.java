@@ -49,14 +49,6 @@ public interface EducationAndProfessionService {
     EducationAndProfessionResponse getByUserId(Integer userId);
 
     /**
-     * Get all education and profession records with pagination (Admin only).
-     * 
-     * @param pageable pagination information
-     * @return paginated education and profession records
-     */
-    Page<EducationAndProfessionResponse> getAllEducationAndProfession(Pageable pageable);
-
-    /**
      * Search education and profession records by criteria (Admin only).
      * 
      * @param occupation    occupation filter (optional)

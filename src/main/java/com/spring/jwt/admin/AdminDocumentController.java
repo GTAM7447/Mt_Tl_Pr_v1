@@ -2,7 +2,6 @@ package com.spring.jwt.admin;
 
 import com.spring.jwt.dto.DocumentResponseDTO;
 import com.spring.jwt.dto.DocumentDetailResponseDTO;
-import com.spring.jwt.dto.PaginatedDocumentResponseDTO;
 import com.spring.jwt.Document.DocumentService;
 import com.spring.jwt.Enums.DocumentType;
 import com.spring.jwt.dto.ResponseDto;
@@ -12,7 +11,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -153,28 +151,28 @@ public class AdminDocumentController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(
-        summary = "Get documents with pagination (Admin)",
-        description = "Admin can retrieve documents for a user with pagination"
-    )
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Documents retrieved successfully"),
-        @ApiResponse(responseCode = "404", description = "User not found"),
-        @ApiResponse(responseCode = "403", description = "Access denied - Admin role required")
-    })
-    @GetMapping("/user/{userId}/paginated")
-    public ResponseEntity<PaginatedDocumentResponseDTO> getDocumentsPaginated(
-            @Parameter(description = "User ID", required = true)
-            @PathVariable @Min(value = 1, message = "Invalid user ID") Integer userId,
-            @Parameter(description = "Page number (0-based)")
-            @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page number cannot be negative") int page,
-            @Parameter(description = "Page size")
-            @RequestParam(defaultValue = "10") @Min(value = 1, message = "Page size must be positive") int size) {
-        
-        log.info("Admin retrieving paginated documents for user ID: {} - page: {}, size: {}", userId, page, size);
-        PaginatedDocumentResponseDTO response = documentService.getDocumentsPaginated(userId, page, size);
-        return ResponseEntity.ok(response);
-    }
+//    @Operation(
+//        summary = "Get documents with pagination (Admin)",
+//        description = "Admin can retrieve documents for a user with pagination"
+//    )
+//    @ApiResponses(value = {
+//        @ApiResponse(responseCode = "200", description = "Documents retrieved successfully"),
+//        @ApiResponse(responseCode = "404", description = "User not found"),
+//        @ApiResponse(responseCode = "403", description = "Access denied - Admin role required")
+//    })
+//    @GetMapping("/user/{userId}/paginated")
+//    public ResponseEntity<PaginatedDocumentResponseDTO> getDocumentsPaginated(
+//            @Parameter(description = "User ID", required = true)
+//            @PathVariable @Min(value = 1, message = "Invalid user ID") Integer userId,
+//            @Parameter(description = "Page number (0-based)")
+//            @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page number cannot be negative") int page,
+//            @Parameter(description = "Page size")
+//            @RequestParam(defaultValue = "10") @Min(value = 1, message = "Page size must be positive") int size) {
+//
+//        log.info("Admin retrieving paginated documents for user ID: {} - page: {}, size: {}", userId, page, size);
+//        PaginatedDocumentResponseDTO response = documentService.getDocumentsPaginated(userId, page, size);
+//        return ResponseEntity.ok(response);
+//    }
 
     @Operation(
         summary = "Delete document (Admin)",

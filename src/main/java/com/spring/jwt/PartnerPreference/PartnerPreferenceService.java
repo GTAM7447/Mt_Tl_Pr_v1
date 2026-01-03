@@ -49,14 +49,6 @@ public interface PartnerPreferenceService {
     PartnerPreferenceResponse getByUserId(Integer userId);
 
     /**
-     * Get all partner preferences with pagination (Admin only).
-     * 
-     * @param pageable pagination information
-     * @return paginated partner preferences
-     */
-    Page<PartnerPreferenceResponse> getAllPartnerPreferences(Pageable pageable);
-
-    /**
      * Search partner preferences by criteria (Admin only).
      * 
      * @param religion      religion filter (optional)

@@ -125,7 +125,7 @@ public interface DocumentService {
          * @param size   page size
          * @return paginated document response DTO
          */
-        PaginatedDocumentResponseDTO getDocumentsPaginated(Integer userId, int page, int size);
+//        PaginatedDocumentResponseDTO getDocumentsPaginated(Integer userId, int page, int size);
 
         /**
          * Replace existing document of the same type

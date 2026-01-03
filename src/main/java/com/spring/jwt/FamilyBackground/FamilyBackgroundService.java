@@ -48,13 +48,6 @@ public interface FamilyBackgroundService {
      */
     FamilyBackgroundResponse getByUserId(Integer userId);
 
-    /**
-     * Get all family backgrounds with pagination (Admin only).
-     * 
-     * @param pageable pagination information
-     * @return paginated family backgrounds
-     */
-    Page<FamilyBackgroundResponse> getAllFamilyBackgrounds(Pageable pageable);
 
     /**
      * Update family background for the current authenticated user.

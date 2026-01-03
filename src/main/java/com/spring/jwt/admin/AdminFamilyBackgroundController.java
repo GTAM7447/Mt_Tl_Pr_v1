@@ -95,38 +95,6 @@ public class AdminFamilyBackgroundController {
     }
 
     @Operation(
-        summary = "Get all family backgrounds (Admin)",
-        description = "Admin can retrieve all users' family background details with pagination"
-    )
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Family backgrounds retrieved successfully"),
-        @ApiResponse(responseCode = "403", description = "Access denied - Admin role required")
-    })
-    @GetMapping("/all")
-    public ResponseEntity<List<FamilyBackgroundResponse>> getAllFamilyBackgrounds(
-            @Parameter(description = "Page number (0-based)")
-            @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page number cannot be negative") int page,
-            @Parameter(description = "Page size")
-            @RequestParam(defaultValue = "10") @Min(value = 1, message = "Page size must be positive") int size,
-            @Parameter(description = "Sort field")
-            @RequestParam(defaultValue = "familyBackgroundId") String sortBy,
-            @Parameter(description = "Sort direction (asc/desc)")
-            @RequestParam(defaultValue = "asc") String sortDir) {
-        
-        log.info("Admin retrieving all family backgrounds - page: {}, size: {}, sortBy: {}, sortDir: {}", 
-                page, size, sortBy, sortDir);
-
-        org.springframework.data.domain.Sort sort = sortDir.equalsIgnoreCase("desc") 
-            ? org.springframework.data.domain.Sort.by(sortBy).descending()
-            : org.springframework.data.domain.Sort.by(sortBy).ascending();
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, sort);
-        
-        org.springframework.data.domain.Page<FamilyBackgroundResponse> familyPage = 
-            familyBackgroundService.getAllFamilyBackgrounds(pageable);
-        return ResponseEntity.ok(familyPage.getContent());
-    }
-
-    @Operation(
         summary = "Delete family background (Admin)",
         description = "Admin can soft delete any user's family background details"
     )

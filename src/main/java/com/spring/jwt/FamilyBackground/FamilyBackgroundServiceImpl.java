@@ -120,15 +120,6 @@ public class FamilyBackgroundServiceImpl implements FamilyBackgroundService {
         return mapper.toResponse(familyBackground);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Page<FamilyBackgroundResponse> getAllFamilyBackgrounds(Pageable pageable) {
-        log.debug("Admin fetching all family backgrounds, page: {}", pageable.getPageNumber());
-
-        Page<FamilyBackground> familyBackgrounds = familyBackgroundRepo.findAll(pageable);
-        
-        return familyBackgrounds.map(mapper::toResponse);
-    }
 
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)

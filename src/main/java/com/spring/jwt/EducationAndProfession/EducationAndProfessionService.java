@@ -22,6 +22,16 @@ public interface EducationAndProfessionService {
     EducationAndProfessionResponse createForCurrentUser(EducationAndProfessionCreateRequest request);
 
     /**
+     * Create education and profession for a specific user (Admin only).
+     * 
+     * @param userId the target user ID
+     * @param request the education and profession creation request
+     * @return created education and profession response
+     * @throws ResourceAlreadyExistsException if education and profession already exists for user
+     */
+    EducationAndProfessionResponse createForUser(Integer userId, EducationAndProfessionCreateRequest request);
+
+    /**
      * Get education and profession for the current authenticated user.
      * 
      * @return current user's education and profession

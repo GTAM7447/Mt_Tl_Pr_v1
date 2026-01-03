@@ -39,7 +39,7 @@ public class ProfileDetailsStepRequest {
     private String caste;
 
     @NotBlank(message = "Marital status cannot be blank")
-    @Pattern(regexp = "^(Single|Married|Divorced|Widowed)$", message = "Invalid marital status")
+    @Pattern(regexp = "^(Single|Never Married|Married|Divorced|Widowed|Separated|Awaiting Divorce)$", message = "Invalid marital status. Valid options: Single, Never Married, Married, Divorced, Widowed, Separated, Awaiting Divorce")
     private String maritalStatus;
 
     @NotBlank(message = "Status cannot be blank")

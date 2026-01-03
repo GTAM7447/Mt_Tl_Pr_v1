@@ -53,20 +53,29 @@ public class ContactDetailsServiceImpl implements ContactDetailsService {
         Integer currentUserId = ownershipService.getCurrentUserId();
         log.info("Creating contact details for authenticated user ID: {}", currentUserId);
 
+        return createForUser(currentUserId, request);
+    }
+
+    @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    @CacheEvict(value = CacheUtils.CacheNames.CONTACT_DETAILS, key = "#result.userId")
+    public ContactDetailsResponse createForUser(Integer userId, ContactDetailsCreateRequest request) {
+        log.info("Creating contact details for user ID: {}", userId);
+
         try {
             // Comprehensive business rule validation
             validationService.validateCreateRequest(request);
             
             // Validate user exists
-            User user = userRepo.findById(currentUserId)
+            User user = userRepo.findById(userId)
                     .orElseThrow(() -> {
-                        log.warn("User not found during contact details creation: {}", currentUserId);
+                        log.warn("User not found during contact details creation: {}", userId);
                         return new ResourceNotFoundException("User not found");
                     });
 
-            // Check if contact details already exist for current user
-            if (contactDetailsRepo.existsByUser_Id(currentUserId)) {
-                log.warn("Attempt to create duplicate contact details for user: {}", currentUserId);
+            // Check if contact details already exist for user
+            if (contactDetailsRepo.existsByUser_Id(userId)) {
+                log.warn("Attempt to create duplicate contact details for user: {}", userId);
                 throw new ResourceAlreadyExistsException("Contact details already exist for this user");
             }
 
@@ -81,12 +90,12 @@ public class ContactDetailsServiceImpl implements ContactDetailsService {
             ContactDetails entity = mapper.toEntity(request, user);
             
             // Set audit fields
-            entity.setCreatedBy(currentUserId);
-            entity.setUpdatedBy(currentUserId);
+            entity.setCreatedBy(userId);
+            entity.setUpdatedBy(userId);
             
             ContactDetails saved = contactDetailsRepo.save(entity);
             log.info("Contact details created successfully with ID: {} for user: {}", 
-                    saved.getContactDetailsId(), currentUserId);
+                    saved.getContactDetailsId(), userId);
 
             // Asynchronously synchronize CompleteProfile
             synchronizeCompleteProfileAsync(user, saved);
@@ -94,10 +103,10 @@ public class ContactDetailsServiceImpl implements ContactDetailsService {
             return mapper.toResponse(saved);
             
         } catch (IllegalArgumentException e) {
-            log.warn("Invalid input during contact details creation for user {}: {}", currentUserId, e.getMessage());
+            log.warn("Invalid input during contact details creation for user {}: {}", userId, e.getMessage());
             throw e; // Re-throw to be handled by exception handler
         } catch (Exception e) {
-            log.error("Unexpected error during contact details creation for user {}: {}", currentUserId, e.getMessage(), e);
+            log.error("Unexpected error during contact details creation for user {}: {}", userId, e.getMessage(), e);
             throw new RuntimeException("Failed to create contact details", e);
         }
     }

@@ -2,6 +2,7 @@ package com.spring.jwt.FamilyBackground.dto;
 
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -10,6 +11,7 @@ import lombok.NoArgsConstructor;
  * All required fields are validated with appropriate constraints.
  */
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class FamilyBackgroundCreateRequest {

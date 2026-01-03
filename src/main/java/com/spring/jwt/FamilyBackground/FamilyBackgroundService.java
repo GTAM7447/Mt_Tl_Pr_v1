@@ -22,6 +22,16 @@ public interface FamilyBackgroundService {
     FamilyBackgroundResponse createForCurrentUser(FamilyBackgroundCreateRequest request);
 
     /**
+     * Create family background for a specific user (Admin only).
+     * 
+     * @param userId the target user ID
+     * @param request the family background creation request
+     * @return created family background response
+     * @throws ResourceAlreadyExistsException if family background already exists for user
+     */
+    FamilyBackgroundResponse createForUser(Integer userId, FamilyBackgroundCreateRequest request);
+
+    /**
      * Get family background for the current authenticated user.
      * 
      * @return current user's family background

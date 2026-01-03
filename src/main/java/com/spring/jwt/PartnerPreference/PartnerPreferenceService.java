@@ -22,6 +22,16 @@ public interface PartnerPreferenceService {
     PartnerPreferenceResponse createForCurrentUser(PartnerPreferenceCreateRequest request);
 
     /**
+     * Create partner preferences for a specific user (Admin only).
+     * 
+     * @param userId the target user ID
+     * @param request the partner preference creation request
+     * @return created partner preference response
+     * @throws ResourceAlreadyExistsException if partner preferences already exist for user
+     */
+    PartnerPreferenceResponse createForUser(Integer userId, PartnerPreferenceCreateRequest request);
+
+    /**
      * Get partner preferences for the current authenticated user.
      * 
      * @return current user's partner preferences

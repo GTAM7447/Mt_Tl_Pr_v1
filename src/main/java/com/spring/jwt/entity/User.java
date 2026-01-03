@@ -8,12 +8,22 @@ import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 import java.util.Set;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users",
+       indexes = {
+           @Index(name = "idx_user_email", columnList = "email"),
+           @Index(name = "idx_user_mobile", columnList = "mobile_number"),
+           @Index(name = "idx_user_gender", columnList = "gender"),
+           @Index(name = "idx_user_status", columnList = "completeProfile")
+       })
+@EntityListeners(AuditingEntityListener.class)
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -50,9 +60,6 @@ public class User {
     @Column(name = "reset_password_token_expiry")
     private LocalDateTime resetPasswordTokenExpiry;
     
-//    @Column(name = "device_fingerprint", length = 1024)
-//    private String deviceFingerprint;
-    
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
     
@@ -70,5 +77,28 @@ public class User {
     inverseJoinColumns = @JoinColumn(name = "role_id", referencedColumnName = "role_id"))
     private Set<Role> roles;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Integer version = 0;
 
+    @CreatedDate
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.version == null) {
+            this.version = 0;
+        }
+        if (this.loginAttempts == null) {
+            this.loginAttempts = 0;
+        }
+        if (this.emailVerified == null) {
+            this.emailVerified = false;
+        }
+    }
 }

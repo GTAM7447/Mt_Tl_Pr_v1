@@ -46,15 +46,18 @@ public class AdminEducationController {
         @ApiResponse(responseCode = "403", description = "Access denied - Admin role required")
     })
     @PostMapping("/user/{userId}")
-    public ResponseEntity<EducationAndProfessionResponse> createEducationDetails(
+    public ResponseEntity<ResponseDto<EducationAndProfessionResponse>> createEducationDetails(
             @Parameter(description = "User ID", required = true)
             @PathVariable @Min(value = 1, message = "Invalid user ID") Integer userId,
             @Valid @RequestBody EducationAndProfessionCreateRequest request) {
         
         log.info("Admin creating education details for user ID: {}", userId);
-        ResponseDto<String> response = ResponseDto.success("Education creation not supported", 
-            "Education creation requires user authentication context");
-        return ResponseEntity.status(501).body(null);
+        
+        // Admin can create education for any user by passing userId
+        EducationAndProfessionResponse response = educationAndProfessionService.createForUser(userId, request);
+        
+        return ResponseEntity.status(201)
+                .body(ResponseDto.success("Education details created successfully", response));
     }
 
     @Operation(

@@ -50,38 +50,47 @@ public class FamilyBackgroundServiceImpl implements FamilyBackgroundService {
         Integer currentUserId = ownershipService.getCurrentUserId();
         log.info("Creating family background for authenticated user ID: {}", currentUserId);
 
+        return createForUser(currentUserId, request);
+    }
+
+    @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    @CacheEvict(value = CacheUtils.CacheNames.FAMILY_BACKGROUNDS, key = "#result.userId")
+    public FamilyBackgroundResponse createForUser(Integer userId, FamilyBackgroundCreateRequest request) {
+        log.info("Creating family background for user ID: {}", userId);
+
         try {
             validationService.validateCreateRequest(request);
             
-            User user = userRepo.findById(currentUserId)
+            User user = userRepo.findById(userId)
                     .orElseThrow(() -> {
-                        log.warn("User not found during family background creation: {}", currentUserId);
+                        log.warn("User not found during family background creation: {}", userId);
                         return new ResourceNotFoundException("User not found");
                     });
 
-            if (familyBackgroundRepo.existsByUser_Id(currentUserId)) {
-                log.warn("Attempt to create duplicate family background for user: {}", currentUserId);
+            if (familyBackgroundRepo.existsByUser_Id(userId)) {
+                log.warn("Attempt to create duplicate family background for user: {}", userId);
                 throw new ResourceAlreadyExistsException("Family background already exists for this user");
             }
 
             FamilyBackground entity = mapper.toEntity(request, user);
 
-            entity.setCreatedBy(currentUserId);
-            entity.setUpdatedBy(currentUserId);
+            entity.setCreatedBy(userId);
+            entity.setUpdatedBy(userId);
             
             FamilyBackground saved = familyBackgroundRepo.save(entity);
             log.info("Family background created successfully with ID: {} for user: {}", 
-                    saved.getFamilyBackgroundId(), currentUserId);
+                    saved.getFamilyBackgroundId(), userId);
 
             synchronizeCompleteProfileAsync(user, saved);
 
             return mapper.toResponse(saved);
             
         } catch (IllegalArgumentException e) {
-            log.warn("Invalid input during family background creation for user {}: {}", currentUserId, e.getMessage());
+            log.warn("Invalid input during family background creation for user {}: {}", userId, e.getMessage());
             throw e;
         } catch (Exception e) {
-            log.error("Unexpected error during family background creation for user {}: {}", currentUserId, e.getMessage(), e);
+            log.error("Unexpected error during family background creation for user {}: {}", userId, e.getMessage(), e);
             throw new RuntimeException("Failed to create family background", e);
         }
     }

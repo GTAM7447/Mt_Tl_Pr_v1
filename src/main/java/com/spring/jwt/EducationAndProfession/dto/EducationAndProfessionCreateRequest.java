@@ -3,6 +3,7 @@ package com.spring.jwt.EducationAndProfession.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -11,6 +12,7 @@ import lombok.NoArgsConstructor;
  * Includes comprehensive validation rules and business constraints.
  */
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "Request to create education and profession information")

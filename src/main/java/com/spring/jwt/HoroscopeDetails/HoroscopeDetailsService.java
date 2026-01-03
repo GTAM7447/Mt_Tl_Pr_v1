@@ -22,6 +22,16 @@ public interface HoroscopeDetailsService {
     HoroscopeResponse createForCurrentUser(HoroscopeCreateRequest request);
 
     /**
+     * Create horoscope details for a specific user (Admin only).
+     * 
+     * @param userId the target user ID
+     * @param request the horoscope creation request
+     * @return created horoscope response
+     * @throws ResourceAlreadyExistsException if horoscope already exists for user
+     */
+    HoroscopeResponse createForUser(Integer userId, HoroscopeCreateRequest request);
+
+    /**
      * Get horoscope details for the current authenticated user.
      * 
      * @return current user's horoscope details

@@ -21,6 +21,15 @@ public interface ContactDetailsService {
     ContactDetailsResponse createForCurrentUser(ContactDetailsCreateRequest request);
 
     /**
+     * Create contact details for a specific user (Admin only).
+     *
+     * @param userId the target user ID
+     * @param request the create request
+     * @return the created contact details response
+     */
+    ContactDetailsResponse createForUser(Integer userId, ContactDetailsCreateRequest request);
+
+    /**
      * Get contact details for the current authenticated user.
      *
      * @return the contact details response

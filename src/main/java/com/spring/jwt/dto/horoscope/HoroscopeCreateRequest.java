@@ -4,11 +4,17 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Date;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class HoroscopeCreateRequest {
 
     @NotNull(message = "Date of Birth cannot be null")

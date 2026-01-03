@@ -3,6 +3,7 @@ package com.spring.jwt.Subscription;
 import com.spring.jwt.entity.Enums.Status;
 import com.spring.jwt.entity.Subscription;
 import com.spring.jwt.exception.ResourceNotFoundException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -43,18 +44,41 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     @Override
+    @Transactional
     public SubscriptionDTO update(Integer id, SubscriptionDTO dto) {
+        if (dto == null) {
+            throw new IllegalArgumentException("Subscription DTO cannot be null");
+        }
+
         Subscription existing = repo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Subscription not found: " + id));
 
-        // Update only non-null fields
         if (dto.getName() != null) existing.setName(dto.getName());
-        if (dto.getCredit() != null) existing.setCredit(dto.getCredit());
+        if (dto.getCredit() != null) {
+            if (dto.getCredit() < 0) {
+                throw new IllegalArgumentException("Credit cannot be negative");
+            }
+            existing.setCredit(dto.getCredit());
+        }
         if (dto.getCreatedDate() != null) existing.setCreatedDate(dto.getCreatedDate());
-        if (dto.getDayLimit() != null) existing.setDayLimit(dto.getDayLimit());
-        if (dto.getTimePeriodMonths() != null) existing.setTimePeriodMonths(dto.getTimePeriodMonths());
+        if (dto.getDayLimit() != null) {
+            if (dto.getDayLimit() < 0) {
+                throw new IllegalArgumentException("Day limit cannot be negative");
+            }
+            existing.setDayLimit(dto.getDayLimit());
+        }
+        if (dto.getTimePeriodMonths() != null) {
+            if (dto.getTimePeriodMonths() <= 0) {
+                throw new IllegalArgumentException("Time period must be positive");
+            }
+            existing.setTimePeriodMonths(dto.getTimePeriodMonths());
+        }
         if (dto.getStatus() != null) {
-            existing.setStatus(Enum.valueOf(com.spring.jwt.entity.Enums.Status.class, dto.getStatus()));
+            try {
+                existing.setStatus(Enum.valueOf(com.spring.jwt.entity.Enums.Status.class, dto.getStatus()));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid status value: " + dto.getStatus());
+            }
         }
 
         Subscription saved = repo.save(existing);
@@ -62,6 +86,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     @Override
+    @Transactional
     public void delete(Integer id) {
         Subscription sub = repo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Subscription not found: " + id));

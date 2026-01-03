@@ -50,38 +50,47 @@ public class PartnerPreferenceServiceImpl implements PartnerPreferenceService {
         Integer currentUserId = ownershipService.getCurrentUserId();
         log.info("Creating partner preferences for authenticated user ID: {}", currentUserId);
 
+        return createForUser(currentUserId, request);
+    }
+
+    @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    @CacheEvict(value = CacheUtils.CacheNames.PARTNER_PREFERENCES, key = "#result.userId")
+    public PartnerPreferenceResponse createForUser(Integer userId, PartnerPreferenceCreateRequest request) {
+        log.info("Creating partner preferences for user ID: {}", userId);
+
         try {
             validationService.validateCreateRequest(request);
 
-            User user = userRepo.findById(currentUserId)
+            User user = userRepo.findById(userId)
                     .orElseThrow(() -> {
-                        log.warn("User not found during partner preference creation: {}", currentUserId);
+                        log.warn("User not found during partner preference creation: {}", userId);
                         return new ResourceNotFoundException("User not found");
                     });
 
-            if (partnerPreferenceRepo.existsByUser_Id(currentUserId)) {
-                log.warn("Attempt to create duplicate partner preferences for user: {}", currentUserId);
+            if (partnerPreferenceRepo.existsByUser_Id(userId)) {
+                log.warn("Attempt to create duplicate partner preferences for user: {}", userId);
                 throw new ResourceAlreadyExistsException("Partner preferences already exist for this user");
             }
 
             PartnerPreference entity = mapper.toEntity(request, user);
 
-            entity.setCreatedBy(currentUserId);
-            entity.setUpdatedBy(currentUserId);
+            entity.setCreatedBy(userId);
+            entity.setUpdatedBy(userId);
             
             PartnerPreference saved = partnerPreferenceRepo.save(entity);
             log.info("Partner preferences created successfully with ID: {} for user: {}", 
-                    saved.getPartnerPreferenceId(), currentUserId);
+                    saved.getPartnerPreferenceId(), userId);
 
             synchronizeCompleteProfileAsync(user, saved);
 
             return mapper.toResponse(saved);
             
         } catch (IllegalArgumentException e) {
-            log.warn("Invalid input during partner preference creation for user {}: {}", currentUserId, e.getMessage());
+            log.warn("Invalid input during partner preference creation for user {}: {}", userId, e.getMessage());
             throw e;
         } catch (Exception e) {
-            log.error("Unexpected error during partner preference creation for user {}: {}", currentUserId, e.getMessage(), e);
+            log.error("Unexpected error during partner preference creation for user {}: {}", userId, e.getMessage(), e);
             throw new RuntimeException("Failed to create partner preferences", e);
         }
     }

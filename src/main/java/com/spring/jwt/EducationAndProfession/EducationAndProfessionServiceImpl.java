@@ -87,6 +87,49 @@ public class EducationAndProfessionServiceImpl implements EducationAndProfession
     }
 
     @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    @CacheEvict(value = CacheUtils.CacheNames.EDUCATION_PROFILES, key = "#userId")
+    public EducationAndProfessionResponse createForUser(Integer userId, EducationAndProfessionCreateRequest request) {
+        Integer adminUserId = ownershipService.getCurrentUserId();
+        log.info("Admin (ID: {}) creating education and profession for user ID: {}", adminUserId, userId);
+
+        try {
+            validationService.validateCreateRequest(request);
+
+            User user = userRepo.findById(userId)
+                    .orElseThrow(() -> {
+                        log.warn("User not found during education and profession creation: {}", userId);
+                        return new ResourceNotFoundException("User not found with ID: " + userId);
+                    });
+
+            if (educationAndProfessionRepo.existsByUser_Id(userId)) {
+                log.warn("Attempt to create duplicate education and profession for user: {}", userId);
+                throw new ResourceAlreadyExistsException("Education and profession already exists for user ID: " + userId);
+            }
+
+            EducationAndProfession entity = mapper.toEntity(request, user);
+
+            entity.setCreatedBy(adminUserId);
+            entity.setUpdatedBy(adminUserId);
+            
+            EducationAndProfession saved = educationAndProfessionRepo.save(entity);
+            log.info("Education and profession created successfully with ID: {} for user: {} by admin: {}", 
+                    saved.getEducationId(), userId, adminUserId);
+
+            synchronizeCompleteProfileAsync(user, saved);
+
+            return mapper.toResponse(saved);
+            
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid input during education and profession creation for user {}: {}", userId, e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error during education and profession creation for user {}: {}", userId, e.getMessage(), e);
+            throw new RuntimeException("Failed to create education and profession", e);
+        }
+    }
+
+    @Override
     @Transactional(readOnly = true)
     @Cacheable(value = CacheUtils.CacheNames.EDUCATION_PROFILES, key = "#root.target.getCurrentUserId()")
     public EducationAndProfessionResponse getCurrentUserEducationAndProfession() {

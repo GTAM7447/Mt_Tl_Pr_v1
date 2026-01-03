@@ -8,6 +8,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
@@ -15,8 +18,10 @@ import java.time.LocalDateTime;
 @Table(name = "document",
         indexes = {
                 @Index(name = "idx_user_document_type", columnList = "user_id, document_type"),
-                @Index(name = "idx_user_id", columnList = "user_id")
+                @Index(name = "idx_user_id", columnList = "user_id"),
+                @Index(name = "idx_document_deleted", columnList = "deleted")
         })
+@EntityListeners(AuditingEntityListener.class)
 @Data
 @Builder
 @AllArgsConstructor
@@ -62,4 +67,35 @@ public class Document {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "complete_profile_id")
     private CompleteProfile completeProfile;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Integer version = 0;
+
+    @CreatedBy
+    @Column(name = "created_by", updatable = false)
+    private Integer createdBy;
+
+    @LastModifiedBy
+    @Column(name = "updated_by")
+    private Integer updatedBy;
+
+    @Column(name = "deleted", nullable = false)
+    private Boolean deleted = false;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Column(name = "deleted_by")
+    private Integer deletedBy;
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.version == null) {
+            this.version = 0;
+        }
+        if (this.deleted == null) {
+            this.deleted = false;
+        }
+    }
 }

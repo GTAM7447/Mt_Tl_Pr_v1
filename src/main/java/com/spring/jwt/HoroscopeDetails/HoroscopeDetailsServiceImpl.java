@@ -49,20 +49,29 @@ public class HoroscopeDetailsServiceImpl implements HoroscopeDetailsService {
         Integer currentUserId = ownershipService.getCurrentUserId();
         log.info("Creating horoscope for authenticated user ID: {}", currentUserId);
 
-        User user = userRepo.findById(currentUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + currentUserId));
+        return createForUser(currentUserId, request);
+    }
 
-        if (horoscopeRepo.existsByUser_Id(currentUserId)) {
-            throw new ResourceAlreadyExistsException("Horoscope details already exist for user: " + currentUserId);
+    @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    @CacheEvict(value = CacheUtils.CacheNames.HOROSCOPES, key = "#userId")
+    public HoroscopeResponse createForUser(Integer userId, HoroscopeCreateRequest request) {
+        log.info("Creating horoscope for user ID: {}", userId);
+
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+
+        if (horoscopeRepo.existsByUser_Id(userId)) {
+            throw new ResourceAlreadyExistsException("Horoscope details already exist for user: " + userId);
         }
 
         HoroscopeDetails entity = mapper.toEntity(request, user);
 
-        entity.setCreatedBy(currentUserId);
-        entity.setUpdatedBy(currentUserId);
+        entity.setCreatedBy(userId);
+        entity.setUpdatedBy(userId);
         
         HoroscopeDetails saved = horoscopeRepo.save(entity);
-        log.info("Horoscope created successfully with ID: {} for user: {}", saved.getHoroscopeDetailsId(), currentUserId);
+        log.info("Horoscope created successfully with ID: {} for user: {}", saved.getHoroscopeDetailsId(), userId);
 
         synchronizeCompleteProfileAsync(user, saved);
 

@@ -40,6 +40,12 @@ public class DecryptionResponseProcessor implements ResponseBodyAdvice<Object> {
             ServerHttpRequest request, ServerHttpResponse response) {
 
         try {
+            // Add null check before accessing body
+            if (body == null) {
+                log.debug("Response body is null, skipping decryption");
+                return null;
+            }
+            
             log.debug("Processing response for decryption: {}", body.getClass().getName());
             return processResponse(body);
         } catch (Exception e) {

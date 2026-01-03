@@ -14,6 +14,7 @@ import com.spring.jwt.profile.domain.ProfileOwnershipService;
 import com.spring.jwt.profile.dto.response.ProfileResponse;
 import com.spring.jwt.repository.UserRepository;
 import com.spring.jwt.utils.CacheUtils;
+import com.spring.jwt.utils.HttpRequestContextExtractor;
 import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +49,9 @@ public class ExpressInterestServiceImpl implements ExpressInterestService {
     private final ExpressInterestValidationService validationService;
     private final ExpressInterestMatchingService matchingService;
     private final ProfileService profileService;
+    private final GenderCompatibilityValidator genderValidator;
+    private final ProfileCompletenessValidator profileCompletenessValidator;
+    private final HttpRequestContextExtractor requestContextExtractor;
 
     @Value("${app.express-interest.daily-limit:10}")
     private Integer dailyLimit;
@@ -73,18 +77,36 @@ public class ExpressInterestServiceImpl implements ExpressInterestService {
             User toUser = userRepository.findById(request.getToUserId())
                     .orElseThrow(() -> new ResourceNotFoundException("Target user not found"));
 
+            genderValidator.validateGenderCompatibility(fromUser, toUser);
+
+            profileCompletenessValidator.validateBothProfilesCompleteness(currentUserId, request.getToUserId());
+
+            if (interestRepository.existsByFromUserIdAndToUserId(currentUserId, request.getToUserId())) {
+                throw new ResourceAlreadyExistsException(
+                        "You have already sent an interest to this user. Please wait for their response.");
+            }
+
+            Long sentToday = interestRepository.countInterestsSentToday(currentUserId);
+            if (sentToday >= dailyLimit) {
+                throw new IllegalArgumentException(
+                        String.format("Daily limit reached. You can send maximum %d interests per day. Try again tomorrow.", dailyLimit));
+            }
+
+            HttpRequestContextExtractor.RequestMetadata metadata = requestContextExtractor.extractRequestMetadata();
+
             ExpressInterest entity = new ExpressInterest();
             entity.setFromUser(fromUser);
             entity.setToUser(toUser);
             entity.setMessage(request.getMessage());
-            entity.setCompatibilityScore(25);
+            entity.setCompatibilityScore(calculateCompatibilityScoreSafely(currentUserId, request.getToUserId()));
             entity.setSourcePlatform(request.getSourcePlatform() != null ? request.getSourcePlatform() : "WEB");
-            entity.setIpAddress("127.0.0.1");
-            entity.setUserAgent("Web Browser");
+            entity.setIpAddress(metadata.getIpAddress());
+            entity.setUserAgent(metadata.getUserAgent());
 
             ExpressInterest saved = interestRepository.save(entity);
-            log.info("Interest sent successfully with ID: {} from user {} to user {}", 
-                    saved.getInterestId(), currentUserId, request.getToUserId());
+            log.info("Interest sent successfully with ID: {} from user {} to user {} (IP: {}, UA: {})", 
+                    saved.getInterestId(), currentUserId, request.getToUserId(), 
+                    metadata.getIpAddress(), metadata.getUserAgent());
 
             ExpressInterestResponse response = new ExpressInterestResponse();
             response.setInterestId(saved.getInterestId());

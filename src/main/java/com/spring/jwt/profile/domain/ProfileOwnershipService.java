@@ -116,8 +116,7 @@ public class ProfileOwnershipService {
      * @return true if modification is allowed
      */
     public boolean canModifyProfile(Integer profileId) {
-        // Currently same logic as canAccessProfile
-        // Can be extended later for different permissions
+
         return canAccessProfile(profileId);
     }
 

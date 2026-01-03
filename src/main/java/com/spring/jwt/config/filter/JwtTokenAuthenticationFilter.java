@@ -62,6 +62,7 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
         try {
 
             if (!jwtService.isValidToken(token)) {
+                log.warn("Invalid token detected");
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -70,20 +71,44 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
             Integer userId = claims.get("userId", Integer.class);
             String username = claims.getSubject();
 
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            // Extract authorities from token instead of loading from database
+            List<String> authorities = claims.get("authorities", List.class);
+            if (authorities == null) {
+                authorities = claims.get("roles", List.class);
+            }
 
+            if (authorities == null || authorities.isEmpty()) {
+                log.warn("No authorities found in token for user: {}", username);
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            log.debug("Extracted authorities from token for user {}: {}", username, authorities);
+
+            // Store userId as the principal so ProfileOwnershipService can retrieve it
+            // This maintains backward compatibility with existing code
             UsernamePasswordAuthenticationToken auth =
                     new UsernamePasswordAuthenticationToken(
-                            userDetails,
+                            userId,  // Use userId as principal for backward compatibility
                             null,
-                            userDetails.getAuthorities()
+                            authorities.stream()
+                                    .map(SimpleGrantedAuthority::new)
+                                    .collect(Collectors.toList())
                     );
 
-            auth.setDetails(userId);
+            // Store username in details for reference if needed
+            auth.setDetails(username);
 
             SecurityContextHolder.getContext().setAuthentication(auth);
+            log.debug("Authentication set successfully for user: {} (ID: {}) with authorities: {}", username, userId, authorities);
 
+        } catch (ExpiredJwtException e) {
+            log.warn("Expired JWT token for request: {}", request.getRequestURI());
+            SecurityContextHolder.clearContext();
+            filterChain.doFilter(request, response);
+            return;
         } catch (Exception e) {
+            log.error("Error processing JWT token: {}", e.getMessage());
             SecurityContextHolder.clearContext();
             filterChain.doFilter(request, response);
             return;

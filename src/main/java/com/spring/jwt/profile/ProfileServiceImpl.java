@@ -65,21 +65,35 @@ public class ProfileServiceImpl implements ProfileService {
         Integer currentUserId = ownershipService.getCurrentUserId();
         log.info("Creating profile for authenticated user ID: {}", currentUserId);
 
-        if (!userRepository.existsById(currentUserId)) {
-            throw new ResourceNotFoundException("User not found with ID: " + currentUserId);
+        return createProfileForUser(currentUserId, request);
+    }
+
+    @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    @Retryable(retryFor = { SQLException.class }, maxAttempts = 3, backoff = @Backoff(delay = 1000))
+    @Caching(evict = {
+        @CacheEvict(value = CacheUtils.CacheNames.PROFILES, key = "#userId"),
+        @CacheEvict(value = CacheUtils.CacheNames.PROFILE_STATS, allEntries = true)
+    })
+    public ProfileResponse createProfileForUser(Integer userId, CreateProfileRequest request) {
+        log.info("Creating profile for user ID: {}", userId);
+
+        if (!userRepository.existsById(userId)) {
+            throw new ResourceNotFoundException("User not found with ID: " + userId);
         }
 
-        if (userProfileRepository.existsByUser_Id(currentUserId)) {
-            throw new DuplicateProfileException("Profile already exists for user ID: " + currentUserId);
+        if (userProfileRepository.existsByUser_Id(userId)) {
+            throw new DuplicateProfileException("Profile already exists for user ID: " + userId);
         }
 
-        User user = userRepository.findById(currentUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + currentUserId));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
 
         UserProfile profile = mapper.toEntity(request, user);
 
-        profile.setCreatedBy(currentUserId);
-        profile.setUpdatedBy(currentUserId);
+        // For admin operations, use the target user ID as creator
+        profile.setCreatedBy(userId);
+        profile.setUpdatedBy(userId);
 
         UserProfile savedProfile = userProfileRepository.save(profile);
         log.info("Profile created successfully with ID: {}", savedProfile.getUserProfileId());

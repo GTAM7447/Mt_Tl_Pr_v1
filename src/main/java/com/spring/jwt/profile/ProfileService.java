@@ -25,6 +25,16 @@ public interface ProfileService {
     ProfileResponse createProfile(CreateProfileRequest request);
 
     /**
+     * Create profile for a specific user (Admin only).
+     * 
+     * @param userId the target user ID
+     * @param request the profile creation request
+     * @return created profile response
+     * @throws DuplicateProfileException if profile already exists for user
+     */
+    ProfileResponse createProfileForUser(Integer userId, CreateProfileRequest request);
+
+    /**
      * Get profile for the current authenticated user.
      * 
      * @return current user's profile

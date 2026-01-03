@@ -69,21 +69,43 @@ public class UserCreditServiceImpl implements UserCreditService {
     }
 
     @Override
+    @Transactional
     public UserCreditDTO update(Integer id, UserCreditDTO dto) {
+        if (dto == null) {
+            throw new IllegalArgumentException("UserCredit DTO cannot be null");
+        }
 
         UserCredit existing = repo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("UserCredit not found: " + id));
 
-        // Update only editable fields
-        if (dto.getTotalCredit() != null) existing.setTotalCredit(dto.getTotalCredit());
+        if (dto.getTotalCredit() != null) {
+            if (dto.getTotalCredit() < 0) {
+                throw new IllegalArgumentException("Total credit cannot be negative");
+            }
+            existing.setTotalCredit(dto.getTotalCredit());
+        }
         if (dto.getDate() != null) existing.setDate(dto.getDate());
-        if (dto.getEndDate() != null) existing.setEndDate(dto.getEndDate());
+        if (dto.getEndDate() != null) {
+            if (dto.getDate() != null && dto.getEndDate().isBefore(dto.getDate())) {
+                throw new IllegalArgumentException("End date cannot be before start date");
+            }
+            existing.setEndDate(dto.getEndDate());
+        }
         if (dto.getStatus() != null) existing.setStatus(dto.getStatus());
-        if (dto.getUseCredit() != null) existing.setUseCredit(dto.getUseCredit());
-        if (dto.getBalanceCredit() != null) existing.setBalanceCredit(dto.getBalanceCredit());
+        if (dto.getUseCredit() != null) {
+            if (dto.getUseCredit() < 0) {
+                throw new IllegalArgumentException("Used credit cannot be negative");
+            }
+            existing.setUseCredit(dto.getUseCredit());
+        }
+        if (dto.getBalanceCredit() != null) {
+            if (dto.getBalanceCredit() < 0) {
+                throw new IllegalArgumentException("Balance credit cannot be negative");
+            }
+            existing.setBalanceCredit(dto.getBalanceCredit());
+        }
         if (dto.getUserId() != null) existing.setUserId(dto.getUserId());
 
-        // Update subscription if provided
         if (dto.getSubscriptionId() != null) {
             Subscription sub = subscriptionRepo.findById(dto.getSubscriptionId())
                     .orElseThrow(() -> new ResourceNotFoundException("Subscription not found: " + dto.getSubscriptionId()));
@@ -95,11 +117,10 @@ public class UserCreditServiceImpl implements UserCreditService {
     }
 
     @Override
+    @Transactional
     public void delete(Integer id) {
-
         UserCredit uc = repo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("UserCredit not found: " + id));
-
         repo.delete(uc);
     }
 

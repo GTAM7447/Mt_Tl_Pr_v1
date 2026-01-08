@@ -82,33 +82,52 @@ public class JwtServiceImpl implements JwtService {
         return generateToken(userDetailsCustom, null);
     }
 
+    /**
+     * 2️⃣ CANONICAL JWT GENERATION METHOD - Access Token
+     * This is the ONLY method that should generate access tokens
+     * DO NOT create duplicate token builders elsewhere
+     * 7️⃣ JWT is IMMUTABLE after creation - never modify after signing
+     */
     @Override
     public String generateToken(UserDetailsCustom userDetailsCustom, String deviceFingerprint) {
+        if (userDetailsCustom == null) {
+            throw new IllegalArgumentException("UserDetailsCustom cannot be null");
+        }
+        
         Instant now = Instant.now();
         Instant notBefore = now.plusSeconds(Math.max(0, jwtConfig.getNotBefore()));
 
+        // Extract authorities - ensure they are Strings
         List<String> roles = userDetailsCustom.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
 
-        log.info("Roles: {}", roles);
+        // Validate authorities are not corrupted
+        for (String role : roles) {
+            if (role == null || role.contains("�") || role.contains("\u0000")) {
+                throw new IllegalStateException("Corrupted authority detected: " + role);
+            }
+        }
 
         Integer userId = userDetailsCustom.getUserId();
         String firstName = userDetailsCustom.getFirstName();
         
-        log.debug("Generating access token for user: {}, device: {}", 
-                userDetailsCustom.getUsername(), 
-                deviceFingerprint != null ? deviceFingerprint.substring(0, 8) + "..." : "none");
+        if (log.isDebugEnabled()) {
+            log.debug("Generating access token for user: {}, device: {}", 
+                    userDetailsCustom.getUsername(), 
+                    deviceFingerprint != null ? deviceFingerprint.substring(0, Math.min(8, deviceFingerprint.length())) + "..." : "none");
+        }
 
-            JwtBuilder jwtBuilder = Jwts.builder()
-                .setSubject(userDetailsCustom.getUsername())
-                .setIssuer(jwtConfig.getIssuer())
-                .setAudience(jwtConfig.getAudience())
-                .setId(UUID.randomUUID().toString())
-                .claim("firstname", firstName)
-                .claim("userId", userId)
-                .claim("authorities", roles)
-                .claim("isEnable", userDetailsCustom.isEnabled());
+        // Build JWT with explicit claim types to prevent corruption
+        JwtBuilder jwtBuilder = Jwts.builder()
+            .setSubject(userDetailsCustom.getUsername())
+            .setIssuer(jwtConfig.getIssuer())
+            .setAudience(jwtConfig.getAudience())
+            .setId(UUID.randomUUID().toString())
+            .claim("firstname", firstName != null ? firstName : "")
+            .claim("userId", userId)
+            .claim("authorities", roles)  // Explicitly typed as List<String>
+            .claim("isEnable", userDetailsCustom.isEnabled());
 
         if (userDetailsCustom.getUserProfileId() != null) {
             jwtBuilder.claim("userProfileId", userDetailsCustom.getUserProfileId());
@@ -124,34 +143,60 @@ public class JwtServiceImpl implements JwtService {
             jwtBuilder.claim(CLAIM_KEY_DEVICE_FINGERPRINT, deviceFingerprint);
         }
 
-        return jwtBuilder.compact();
+        // 7️⃣ Token is IMMUTABLE after this point - never modify
+        String token = jwtBuilder.compact();
+        
+        // Validate token was generated correctly
+        if (token == null || token.split("\\.").length != 3) {
+            throw new IllegalStateException("Generated token is malformed");
+        }
+        
+        return token;
     }
     
+    /**
+     * 2️⃣ CANONICAL JWT GENERATION METHOD - Refresh Token
+     * This is the ONLY method that should generate refresh tokens
+     * DO NOT create duplicate token builders elsewhere
+     * 7️⃣ JWT is IMMUTABLE after creation - never modify after signing
+     */
     @Override
     public String generateRefreshToken(UserDetailsCustom userDetailsCustom, String deviceFingerprint) {
+        if (userDetailsCustom == null) {
+            throw new IllegalArgumentException("UserDetailsCustom cannot be null");
+        }
+        
         Instant now = Instant.now();
         Instant notBefore = now.plusSeconds(Math.max(0, jwtConfig.getNotBefore()));
         
-        log.debug("Generating refresh token for user: {}, device: {}", 
-                userDetailsCustom.getUsername(), 
-                deviceFingerprint != null ? deviceFingerprint.substring(0, 8) + "..." : "none");
+        if (log.isDebugEnabled()) {
+            log.debug("Generating refresh token for user: {}, device: {}", 
+                    userDetailsCustom.getUsername(), 
+                    deviceFingerprint != null ? deviceFingerprint.substring(0, Math.min(8, deviceFingerprint.length())) + "..." : "none");
+        }
 
+        // Extract authorities - ensure they are Strings
         List<String> roles = userDetailsCustom.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
 
-            JwtBuilder jwtBuilder = Jwts.builder()
-                .setSubject(userDetailsCustom.getUsername())
-                .setIssuer(jwtConfig.getIssuer())
-                .setId(UUID.randomUUID().toString())
-                .claim("userId", userDetailsCustom.getUserId())
-                .claim("authorities", roles);
+        // Validate authorities are not corrupted
+        for (String role : roles) {
+            if (role == null || role.contains("�") || role.contains("\u0000")) {
+                throw new IllegalStateException("Corrupted authority detected: " + role);
+            }
+        }
+
+        JwtBuilder jwtBuilder = Jwts.builder()
+            .setSubject(userDetailsCustom.getUsername())
+            .setIssuer(jwtConfig.getIssuer())
+            .setId(UUID.randomUUID().toString())
+            .claim("userId", userDetailsCustom.getUserId())
+            .claim("authorities", roles);  // Explicitly typed as List<String>
 
         if (userDetailsCustom.getUserProfileId() != null) {
             jwtBuilder.claim("userProfileId", userDetailsCustom.getUserProfileId());
         }
-        
-
         
         jwtBuilder.claim(CLAIM_KEY_TOKEN_TYPE, TOKEN_TYPE_REFRESH)
                 .setIssuedAt(Date.from(now))
@@ -163,7 +208,15 @@ public class JwtServiceImpl implements JwtService {
             jwtBuilder.claim(CLAIM_KEY_DEVICE_FINGERPRINT, deviceFingerprint);
         }
 
-        return jwtBuilder.compact();
+        // 7️⃣ Token is IMMUTABLE after this point - never modify
+        String token = jwtBuilder.compact();
+        
+        // Validate token was generated correctly
+        if (token == null || token.split("\\.").length != 3) {
+            throw new IllegalStateException("Generated refresh token is malformed");
+        }
+        
+        return token;
     }
     
     @Override

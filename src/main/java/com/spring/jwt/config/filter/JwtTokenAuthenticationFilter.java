@@ -11,6 +11,8 @@ import com.spring.jwt.utils.HelperUtils;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -54,6 +56,12 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
+        // 4️⃣ Skip JWT validation for OPTIONS (CORS preflight)
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -62,71 +70,180 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String token = getJwtFromRequest(request);
+        
+        if (token == null || token.trim().isEmpty()) {
+            log.warn("Empty token extracted from request");
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         try {
-            String deviceFingerprint = jwtService.generateDeviceFingerprint(request);
+            // 3️⃣ Strict JWT Validation Order
+            // Step 1: Token format check (done by extractClaims - will throw MalformedJwtException)
+            // Step 2: Signature validation (done by extractClaims - will throw SignatureException)
+            // Step 3: Expiry validation (done by extractClaims - will throw ExpiredJwtException)
             
-            if (!jwtService.isValidToken(token, deviceFingerprint)) {
-                log.warn("Invalid token detected for request: {}", request.getRequestURI());
+            // Step 4: Claim extraction with validation
+            Claims claims = jwtService.extractClaims(token);
+            
+            // 6️⃣ Validate Claims Schema Explicitly
+            validateClaimsSchema(claims);
+            
+            String username = claims.getSubject();
+            if (username == null || username.trim().isEmpty()) {
+                log.error("Token has null or empty subject claim");
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            Claims claims = jwtService.extractClaims(token);
-            String username = claims.getSubject();
-
-            List<String> authorities = claims.get("authorities", List.class);
-            if (authorities == null) {
-                authorities = claims.get("roles", List.class);
-            }
-
+            // Step 5: Authority mapping with validation
+            List<String> authorities = extractAndValidateAuthorities(claims);
             if (authorities == null || authorities.isEmpty()) {
                 log.warn("No authorities found in token for user: {}", username);
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            log.debug("Extracted authorities from token for user {}: {}", username, authorities);
-
-            UserDetailsCustom userDetails = (UserDetailsCustom) userDetailsService.loadUserByUsername(username);
-            
-            if (userDetails == null) {
-                log.warn("User not found: {}", username);
+            // Device fingerprint validation
+            String deviceFingerprint = jwtService.generateDeviceFingerprint(request);
+            if (!jwtService.isValidToken(token, deviceFingerprint)) {
+                log.warn("Token validation failed for request: {}", request.getRequestURI());
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            authorities.stream()
-                                    .map(SimpleGrantedAuthority::new)
-                                    .collect(Collectors.toList())
-                    );
+            // Step 6: Authentication creation with UserDetailsCustom (5️⃣ One Principal Type)
+            UserDetailsCustom userDetails = (UserDetailsCustom) userDetailsService.loadUserByUsername(username);
+            
+            if (userDetails == null) {
+                log.error("User not found in database: {}", username);
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            // 5️⃣ Enforce One Principal Type - Always UserDetailsCustom
+            UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                    userDetails,  // ✅ Always UserDetailsCustom
+                    null,
+                    authorities.stream()
+                            .map(SimpleGrantedAuthority::new)
+                            .collect(Collectors.toList())
+            );
 
             SecurityContextHolder.getContext().setAuthentication(auth);
-            log.debug("Authentication set successfully for user: {} (ID: {}) with authorities: {}", 
-                    username, userDetails.getUserId(), authorities);
+            
+            // 8️⃣ Token Debug Guard - Log only once per request at debug level
+            if (log.isDebugEnabled()) {
+                log.debug("JWT validated successfully for subject: {}, userId: {}", username, userDetails.getUserId());
+            }
 
         } catch (DeviceFingerprintMismatchException e) {
+            // 9️⃣ Unify Error Mapping - Device mismatch = 401
             log.warn("Device fingerprint mismatch for request: {} - {}", request.getRequestURI(), e.getMessage());
             SecurityContextHolder.clearContext();
             authenticationEntryPoint.commence(request, response, e);
             return;
         } catch (ExpiredJwtException e) {
+            // 9️⃣ Unify Error Mapping - Expired = 401
             log.warn("Expired JWT token for request: {}", request.getRequestURI());
             SecurityContextHolder.clearContext();
             filterChain.doFilter(request, response);
             return;
-        } catch (Exception e) {
-            log.error("Error processing JWT token: {}", e.getMessage());
+        } catch (io.jsonwebtoken.MalformedJwtException e) {
+            // 9️⃣ Unify Error Mapping - Malformed = 401
+            log.error("Malformed JWT token: {}", e.getMessage());
             SecurityContextHolder.clearContext();
             filterChain.doFilter(request, response);
+            return;
+        } catch (io.jsonwebtoken.security.SignatureException e) {
+            // 9️⃣ Unify Error Mapping - Invalid signature = 401
+            log.error("Invalid JWT signature: {}", e.getMessage());
+            SecurityContextHolder.clearContext();
+            filterChain.doFilter(request, response);
+            return;
+        } catch (JwtException e) {
+            // 9️⃣ Unify Error Mapping - JWT error = 401
+            log.error("JWT validation error: {}", e.getMessage());
+            SecurityContextHolder.clearContext();
+            filterChain.doFilter(request, response);
+            return;
+        } catch (IllegalStateException e) {
+            // 9️⃣ Principal mismatch = 500 (config error)
+            log.error("Configuration error during authentication: {}", e.getMessage(), e);
+            SecurityContextHolder.clearContext();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Authentication configuration error");
+            return;
+        } catch (Exception e) {
+            // 9️⃣ Unexpected error = 500
+            log.error("Unexpected error processing JWT token: {}", e.getMessage(), e);
+            SecurityContextHolder.clearContext();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Authentication error");
             return;
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * 6️⃣ Validate Claims Schema Explicitly
+     * Fail early if claims don't match expected format
+     */
+    private void validateClaimsSchema(Claims claims) {
+        // Validate authorities claim format
+        Object authoritiesClaim = claims.get("authorities");
+        if (authoritiesClaim != null && !(authoritiesClaim instanceof List<?>)) {
+            throw new JwtException("Invalid authorities claim format - expected List but got " + 
+                    authoritiesClaim.getClass().getSimpleName());
+        }
+        
+        // Validate userId claim
+        Object userIdClaim = claims.get("userId");
+        if (userIdClaim != null && !(userIdClaim instanceof Integer)) {
+            throw new JwtException("Invalid userId claim format - expected Integer but got " + 
+                    userIdClaim.getClass().getSimpleName());
+        }
+        
+        // Validate token_type claim
+        Object tokenTypeClaim = claims.get("token_type");
+        if (tokenTypeClaim != null && !(tokenTypeClaim instanceof String)) {
+            throw new JwtException("Invalid token_type claim format - expected String but got " + 
+                    tokenTypeClaim.getClass().getSimpleName());
+        }
+    }
+
+    /**
+     * Extract and validate authorities from claims
+     * Returns null if authorities are invalid
+     */
+    private List<String> extractAndValidateAuthorities(Claims claims) {
+        try {
+            List<String> authorities = claims.get("authorities", List.class);
+            if (authorities == null) {
+                authorities = claims.get("roles", List.class);
+            }
+            
+            if (authorities != null) {
+                // Validate each authority is a String
+                for (Object auth : authorities) {
+                    if (!(auth instanceof String)) {
+                        log.error("Invalid authority type in token: expected String but got {}", 
+                                auth != null ? auth.getClass().getSimpleName() : "null");
+                        return null;
+                    }
+                    // Check for corrupted authority strings
+                    String authStr = (String) auth;
+                    if (authStr.contains("�") || authStr.contains("\u0000")) {
+                        log.error("Corrupted authority string detected: {}", authStr);
+                        return null;
+                    }
+                }
+            }
+            
+            return authorities;
+        } catch (Exception e) {
+            log.error("Error extracting authorities from claims: {}", e.getMessage());
+            return null;
+        }
     }
 
     private String getSpecificInvalidReason(String token, HttpServletRequest request) {

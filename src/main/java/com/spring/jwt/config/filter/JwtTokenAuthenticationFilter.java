@@ -73,7 +73,6 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
             }
 
             Claims claims = jwtService.extractClaims(token);
-            Integer userId = claims.get("userId", Integer.class);
             String username = claims.getSubject();
 
             // Extract authorities from token instead of loading from database
@@ -90,22 +89,27 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
 
             log.debug("Extracted authorities from token for user {}: {}", username, authorities);
 
-            // Store userId as the principal so ProfileOwnershipService can retrieve it
-            // This maintains backward compatibility with existing code
+            // Load UserDetailsCustom to use as principal (required by SecurityUtil)
+            UserDetailsCustom userDetails = (UserDetailsCustom) userDetailsService.loadUserByUsername(username);
+            
+            if (userDetails == null) {
+                log.warn("User not found: {}", username);
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             UsernamePasswordAuthenticationToken auth =
                     new UsernamePasswordAuthenticationToken(
-                            userId,  // Use userId as principal for backward compatibility
+                            userDetails,  // Use UserDetailsCustom as principal (required by SecurityUtil)
                             null,
                             authorities.stream()
                                     .map(SimpleGrantedAuthority::new)
                                     .collect(Collectors.toList())
                     );
 
-            // Store username in details for reference if needed
-            auth.setDetails(username);
-
             SecurityContextHolder.getContext().setAuthentication(auth);
-            log.debug("Authentication set successfully for user: {} (ID: {}) with authorities: {}", username, userId, authorities);
+            log.debug("Authentication set successfully for user: {} (ID: {}) with authorities: {}", 
+                    username, userDetails.getUserId(), authorities);
 
         } catch (DeviceFingerprintMismatchException e) {
             // Device fingerprint mismatch - delegate to SecurityExceptionHandler for proper error response
@@ -178,14 +182,22 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
                 }
 
                 if (authorities != null) {
+                    // Load UserDetailsCustom to use as principal (required by SecurityUtil)
+                    UserDetailsCustom userDetails = (UserDetailsCustom) userDetailsService.loadUserByUsername(username);
+                    
+                    if (userDetails == null) {
+                        log.warn("User not found: {}", username);
+                        return false;
+                    }
+                    
                     UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                            username,
+                            userDetails,  // Use UserDetailsCustom as principal
                             null,
                             authorities.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList())
                     );
 
-
                     SecurityContextHolder.getContext().setAuthentication(auth);
+                    
                     try {
                         String tokenId = claims.getId();
                         if (!activeSessionService.isCurrentAccessToken(username, tokenId)) {
@@ -193,6 +205,7 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
                             return false;
                         }
                     } catch (Exception ignored) {}
+                    
                     log.debug("Authentication set in security context for user: {}", username);
                     return true;
                 } else {

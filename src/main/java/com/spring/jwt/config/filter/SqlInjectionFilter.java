@@ -120,6 +120,25 @@ public class SqlInjectionFilter implements Filter, Ordered {
         @Override
         public String getHeader(String name) {
             String header = super.getHeader(name);
+            // CRITICAL: Never sanitize Authorization header - it contains JWT token
+            // Also exclude other security-sensitive headers
+            if (name != null && (
+                    name.equalsIgnoreCase("Authorization") ||
+                    name.equalsIgnoreCase("Cookie") ||
+                    name.equalsIgnoreCase("Content-Type") ||
+                    name.equalsIgnoreCase("Accept") ||
+                    name.equalsIgnoreCase("User-Agent") ||
+                    name.equalsIgnoreCase("Host") ||
+                    name.equalsIgnoreCase("Origin") ||
+                    name.equalsIgnoreCase("Referer") ||
+                    name.equalsIgnoreCase("Accept-Language") ||
+                    name.equalsIgnoreCase("Accept-Encoding") ||
+                    name.equalsIgnoreCase("Connection") ||
+                    name.equalsIgnoreCase("Content-Length") ||
+                    name.equalsIgnoreCase("X-Forwarded-For") ||
+                    name.equalsIgnoreCase("X-Real-IP"))) {
+                return header;
+            }
             return header != null ? sanitize(header) : null;
         }
 
@@ -128,6 +147,25 @@ public class SqlInjectionFilter implements Filter, Ordered {
             Enumeration<String> headers = super.getHeaders(name);
             if (headers == null) {
                 return null;
+            }
+
+            // CRITICAL: Never sanitize Authorization header - it contains JWT token
+            if (name != null && (
+                    name.equalsIgnoreCase("Authorization") ||
+                    name.equalsIgnoreCase("Cookie") ||
+                    name.equalsIgnoreCase("Content-Type") ||
+                    name.equalsIgnoreCase("Accept") ||
+                    name.equalsIgnoreCase("User-Agent") ||
+                    name.equalsIgnoreCase("Host") ||
+                    name.equalsIgnoreCase("Origin") ||
+                    name.equalsIgnoreCase("Referer") ||
+                    name.equalsIgnoreCase("Accept-Language") ||
+                    name.equalsIgnoreCase("Accept-Encoding") ||
+                    name.equalsIgnoreCase("Connection") ||
+                    name.equalsIgnoreCase("Content-Length") ||
+                    name.equalsIgnoreCase("X-Forwarded-For") ||
+                    name.equalsIgnoreCase("X-Real-IP"))) {
+                return headers;
             }
 
             return new Enumeration<String>() {

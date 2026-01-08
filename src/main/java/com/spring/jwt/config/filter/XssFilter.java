@@ -24,7 +24,8 @@ public class XssFilter implements Filter, Ordered {
 
     private static final Set<String> EXCLUDED_HEADERS = new HashSet<>(Arrays.asList(
             "accept", "content-type", "authorization", "origin", "referer", "user-agent",
-            "host", "connection", "content-length", "cookie", "accept-encoding", "accept-language"
+            "host", "connection", "content-length", "cookie", "accept-encoding", "accept-language",
+            "x-forwarded-for", "x-real-ip", "cache-control", "pragma"
     ));
 
     @Override

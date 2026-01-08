@@ -63,8 +63,17 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String authHeader = request.getHeader("Authorization");
+        
+        // Log for debugging - only at trace level to avoid performance impact
+        if (log.isTraceEnabled()) {
+            log.trace("Processing request: {} {} - Auth header present: {}", 
+                    request.getMethod(), request.getRequestURI(), authHeader != null);
+        }
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            if (log.isTraceEnabled()) {
+                log.trace("No Bearer token found, continuing filter chain");
+            }
             filterChain.doFilter(request, response);
             return;
         }
@@ -72,7 +81,16 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
         String token = getJwtFromRequest(request);
         
         if (token == null || token.trim().isEmpty()) {
-            log.warn("Empty token extracted from request");
+            log.warn("Empty token extracted from request: {}", request.getRequestURI());
+            filterChain.doFilter(request, response);
+            return;
+        }
+        
+        // Validate token format before processing
+        String[] tokenParts = token.split("\\.");
+        if (tokenParts.length != 3) {
+            log.error("Invalid JWT format - expected 3 parts but got {} for request: {}", 
+                    tokenParts.length, request.getRequestURI());
             filterChain.doFilter(request, response);
             return;
         }
@@ -129,12 +147,21 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
                             .map(SimpleGrantedAuthority::new)
                             .collect(Collectors.toList())
             );
+            
+            // CRITICAL: Set details for web authentication
+            auth.setDetails(new org.springframework.security.web.authentication.WebAuthenticationDetailsSource()
+                    .buildDetails(request));
 
-            SecurityContextHolder.getContext().setAuthentication(auth);
+            // CRITICAL: Explicitly set the authentication in the SecurityContext
+            // In Spring Security 6 with stateless sessions, we must ensure the context is properly set
+            org.springframework.security.core.context.SecurityContext context = SecurityContextHolder.createEmptyContext();
+            context.setAuthentication(auth);
+            SecurityContextHolder.setContext(context);
             
             // 8️⃣ Token Debug Guard - Log only once per request at debug level
             if (log.isDebugEnabled()) {
-                log.debug("JWT validated successfully for subject: {}, userId: {}", username, userDetails.getUserId());
+                log.debug("JWT validated successfully for subject: {}, userId: {}, authorities: {}", 
+                        username, userDetails.getUserId(), authorities);
             }
 
         } catch (DeviceFingerprintMismatchException e) {

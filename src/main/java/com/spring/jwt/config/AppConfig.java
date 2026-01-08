@@ -192,14 +192,23 @@ public class AppConfig {
                 JwtRefreshTokenFilter jwtRefreshTokenFilter = new JwtRefreshTokenFilter(authenticationManager(http),
                                 jwtConfig, jwtService, userDetailsService(), activeSessionService);
 
+                // CRITICAL: Filter order matters!
+                // 1. JWT filters MUST run FIRST to extract token BEFORE any sanitization
+                // 2. Security filters (XSS, SQL Injection) run AFTER JWT authentication
+                // 3. Rate limiting runs early to block abuse
+                
+                // JWT Authentication filters - run FIRST (highest priority)
                 http.addFilterBefore(jwtTokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                                 .addFilterBefore(jwtUsernamePasswordAuthenticationFilter,
                                                 UsernamePasswordAuthenticationFilter.class)
-                                .addFilterBefore(jwtRefreshTokenFilter, UsernamePasswordAuthenticationFilter.class)
-                                .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
-                                .addFilterBefore(xssFilter, UsernamePasswordAuthenticationFilter.class)
-                                .addFilterBefore(sqlInjectionFilter, UsernamePasswordAuthenticationFilter.class)
-                                .addFilterBefore(securityHeadersFilter, UsernamePasswordAuthenticationFilter.class);
+                                .addFilterBefore(jwtRefreshTokenFilter, UsernamePasswordAuthenticationFilter.class);
+                
+                // Security filters - run AFTER JWT authentication
+                // These filters now exclude Authorization header from sanitization
+                http.addFilterAfter(securityHeadersFilter, JwtTokenAuthenticationFilter.class)
+                                .addFilterAfter(xssFilter, SecurityHeadersFilter.class)
+                                .addFilterAfter(sqlInjectionFilter, XssFilter.class)
+                                .addFilterAfter(rateLimitingFilter, SqlInjectionFilter.class);
 
                 http.authenticationProvider(customAuthenticationProvider);
 

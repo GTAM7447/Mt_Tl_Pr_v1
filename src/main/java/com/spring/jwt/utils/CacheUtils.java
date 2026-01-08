@@ -21,20 +21,15 @@ public class CacheUtils {
      * Cache names used across the application.
      */
     public static class CacheNames {
-        // Profile module
         public static final String PROFILES = "profiles";
         public static final String PUBLIC_PROFILES = "publicProfiles";
         public static final String PROFILE_STATS = "profileStats";
-        
-        // Horoscope module
+
         public static final String HOROSCOPES = "horoscopes";
         public static final String HOROSCOPE_STATS = "horoscopeStats";
         
-        // User module
         public static final String USERS = "users";
         public static final String USER_DETAILS = "userDetails";
-        
-        // Other modules
 
         public static final String EXPRESS_INTEREST = "expressInterests";
         public static final String EDUCATION_PROFILES = "educationProfiles";
@@ -42,8 +37,7 @@ public class CacheUtils {
         public static final String PARTNER_PREFERENCES = "partnerPreferences";
         public static final String CONTACT_DETAILS = "contactDetails";
         public static final String COMPLETE_PROFILES = "completeProfiles";
-        
-        // System caches
+
         public static final String APPLICATION_SETTINGS = "applicationSettings";
         public static final String LOOKUP_DATA = "lookupData";
     }

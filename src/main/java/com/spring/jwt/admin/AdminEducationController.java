@@ -52,8 +52,7 @@ public class AdminEducationController {
             @Valid @RequestBody EducationAndProfessionCreateRequest request) {
         
         log.info("Admin creating education details for user ID: {}", userId);
-        
-        // Admin can create education for any user by passing userId
+
         EducationAndProfessionResponse response = educationAndProfessionService.createForUser(userId, request);
         
         return ResponseEntity.status(201)

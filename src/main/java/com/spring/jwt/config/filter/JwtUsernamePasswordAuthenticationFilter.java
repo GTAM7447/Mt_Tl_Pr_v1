@@ -95,7 +95,7 @@ public class JwtUsernamePasswordAuthenticationFilter extends AbstractAuthenticat
             try {
                 User user = userRepository.findByEmail(userDetailsCustom.getUsername());
                 if (user != null) {
-                    user.setLastLogin(LocalDateTime.now());
+                    user.updateLastLogin();
                     userRepository.save(user);
                     log.debug("Saved device fingerprint for user: {}", user.getEmail());
                 }

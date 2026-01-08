@@ -34,7 +34,9 @@ public interface CompleteProfileRepository extends JpaRepository<CompleteProfile
      */
     @Query("SELECT cp FROM CompleteProfile cp " +
            "LEFT JOIN FETCH cp.user u " +
+           "LEFT JOIN FETCH cp.userProfile up " +
            "WHERE cp.deleted = false " +
+           "AND (up IS NULL OR up.status = 'ACTIVE') " +
            "ORDER BY cp.updatedAt DESC")
     Page<CompleteProfile> findAllWithUser(Pageable pageable);
 
@@ -43,7 +45,9 @@ public interface CompleteProfileRepository extends JpaRepository<CompleteProfile
      */
     @Query("SELECT cp FROM CompleteProfile cp " +
            "LEFT JOIN FETCH cp.user u " +
+           "LEFT JOIN FETCH cp.userProfile up " +
            "WHERE cp.deleted = false " +
+           "AND (up IS NULL OR up.status = 'ACTIVE') " +
            "AND cp.completionPercentage BETWEEN :minPercentage AND :maxPercentage")
     Page<CompleteProfile> findByCompletionPercentageRange(
             @Param("minPercentage") Integer minPercentage,
@@ -55,7 +59,9 @@ public interface CompleteProfileRepository extends JpaRepository<CompleteProfile
      */
     @Query("SELECT cp FROM CompleteProfile cp " +
            "LEFT JOIN FETCH cp.user u " +
+           "LEFT JOIN FETCH cp.userProfile up " +
            "WHERE cp.deleted = false " +
+           "AND (up IS NULL OR up.status = 'ACTIVE') " +
            "AND cp.profileQuality IN :qualities")
     Page<CompleteProfile> findByProfileQualityIn(
             @Param("qualities") List<CompleteProfile.ProfileQuality> qualities,
@@ -66,7 +72,9 @@ public interface CompleteProfileRepository extends JpaRepository<CompleteProfile
      */
     @Query("SELECT cp FROM CompleteProfile cp " +
            "LEFT JOIN FETCH cp.user u " +
+           "LEFT JOIN FETCH cp.userProfile up " +
            "WHERE cp.deleted = false " +
+           "AND (up IS NULL OR up.status = 'ACTIVE') " +
            "AND cp.verificationStatus IN :statuses")
     Page<CompleteProfile> findByVerificationStatusIn(
             @Param("statuses") List<CompleteProfile.VerificationStatus> statuses,
@@ -77,7 +85,9 @@ public interface CompleteProfileRepository extends JpaRepository<CompleteProfile
      */
     @Query("SELECT cp FROM CompleteProfile cp " +
            "LEFT JOIN FETCH cp.user u " +
+           "LEFT JOIN FETCH cp.userProfile up " +
            "WHERE cp.deleted = false " +
+           "AND (up IS NULL OR up.status = 'ACTIVE') " +
            "AND cp.profileCompleted = false")
     Page<CompleteProfile> findIncompleteProfiles(Pageable pageable);
 
@@ -86,7 +96,9 @@ public interface CompleteProfileRepository extends JpaRepository<CompleteProfile
      */
     @Query("SELECT cp FROM CompleteProfile cp " +
            "LEFT JOIN FETCH cp.user u " +
+           "LEFT JOIN FETCH cp.userProfile up " +
            "WHERE cp.deleted = false " +
+           "AND (up IS NULL OR up.status = 'ACTIVE') " +
            "AND cp.updatedAt BETWEEN :startDate AND :endDate")
     Page<CompleteProfile> findByUpdatedAtBetween(
             @Param("startDate") LocalDateTime startDate,
@@ -98,7 +110,9 @@ public interface CompleteProfileRepository extends JpaRepository<CompleteProfile
      */
     @Query("SELECT cp FROM CompleteProfile cp " +
            "LEFT JOIN FETCH cp.user u " +
+           "LEFT JOIN FETCH cp.userProfile up " +
            "WHERE cp.deleted = false " +
+           "AND (up IS NULL OR up.status = 'ACTIVE') " +
            "AND (:minPercentage IS NULL OR cp.completionPercentage >= :minPercentage) " +
            "AND (:maxPercentage IS NULL OR cp.completionPercentage <= :maxPercentage) " +
            "AND (:profileQuality IS NULL OR cp.profileQuality = :profileQuality) " +
@@ -122,7 +136,9 @@ public interface CompleteProfileRepository extends JpaRepository<CompleteProfile
      * Count profiles by completion status.
      */
     @Query("SELECT cp.profileCompleted, COUNT(cp) FROM CompleteProfile cp " +
+           "LEFT JOIN cp.userProfile up " +
            "WHERE cp.deleted = false " +
+           "AND (up IS NULL OR up.status = 'ACTIVE') " +
            "GROUP BY cp.profileCompleted")
     List<Object[]> countByCompletionStatus();
 
@@ -130,7 +146,9 @@ public interface CompleteProfileRepository extends JpaRepository<CompleteProfile
      * Count profiles by quality rating.
      */
     @Query("SELECT cp.profileQuality, COUNT(cp) FROM CompleteProfile cp " +
+           "LEFT JOIN cp.userProfile up " +
            "WHERE cp.deleted = false " +
+           "AND (up IS NULL OR up.status = 'ACTIVE') " +
            "GROUP BY cp.profileQuality")
     List<Object[]> countByProfileQuality();
 
@@ -138,7 +156,9 @@ public interface CompleteProfileRepository extends JpaRepository<CompleteProfile
      * Count profiles by verification status.
      */
     @Query("SELECT cp.verificationStatus, COUNT(cp) FROM CompleteProfile cp " +
+           "LEFT JOIN cp.userProfile up " +
            "WHERE cp.deleted = false " +
+           "AND (up IS NULL OR up.status = 'ACTIVE') " +
            "GROUP BY cp.verificationStatus")
     List<Object[]> countByVerificationStatus();
 
@@ -146,7 +166,9 @@ public interface CompleteProfileRepository extends JpaRepository<CompleteProfile
      * Get average completion percentage.
      */
     @Query("SELECT AVG(cp.completionPercentage) FROM CompleteProfile cp " +
-           "WHERE cp.deleted = false")
+           "LEFT JOIN cp.userProfile up " +
+           "WHERE cp.deleted = false " +
+           "AND (up IS NULL OR up.status = 'ACTIVE')")
     Double getAverageCompletionPercentage();
 
     /**
@@ -161,7 +183,9 @@ public interface CompleteProfileRepository extends JpaRepository<CompleteProfile
            "ELSE '100' " +
            "END as range, COUNT(cp) " +
            "FROM CompleteProfile cp " +
+           "LEFT JOIN cp.userProfile up " +
            "WHERE cp.deleted = false " +
+           "AND (up IS NULL OR up.status = 'ACTIVE') " +
            "GROUP BY " +
            "CASE " +
            "WHEN cp.completionPercentage < 25 THEN '0-24' " +
@@ -177,21 +201,28 @@ public interface CompleteProfileRepository extends JpaRepository<CompleteProfile
      */
     @Query("SELECT cp FROM CompleteProfile cp " +
            "LEFT JOIN FETCH cp.user u " +
+           "LEFT JOIN FETCH cp.userProfile up " +
            "WHERE cp.deleted = false " +
+           "AND (up IS NULL OR up.status = 'ACTIVE') " +
            "ORDER BY cp.completenessScore DESC")
     Page<CompleteProfile> findTopProfilesByScore(Pageable pageable);
 
     /**
      * Count total profiles.
      */
-    @Query("SELECT COUNT(cp) FROM CompleteProfile cp WHERE cp.deleted = false")
+    @Query("SELECT COUNT(cp) FROM CompleteProfile cp " +
+           "LEFT JOIN cp.userProfile up " +
+           "WHERE cp.deleted = false " +
+           "AND (up IS NULL OR up.status = 'ACTIVE')")
     Long countTotalProfiles();
 
     /**
      * Count verified profiles.
      */
     @Query("SELECT COUNT(cp) FROM CompleteProfile cp " +
+           "LEFT JOIN cp.userProfile up " +
            "WHERE cp.deleted = false " +
+           "AND (up IS NULL OR up.status = 'ACTIVE') " +
            "AND cp.verificationStatus = 'VERIFIED'")
     Long countVerifiedProfiles();
 
@@ -199,7 +230,9 @@ public interface CompleteProfileRepository extends JpaRepository<CompleteProfile
      * Count complete profiles.
      */
     @Query("SELECT COUNT(cp) FROM CompleteProfile cp " +
+           "LEFT JOIN cp.userProfile up " +
            "WHERE cp.deleted = false " +
+           "AND (up IS NULL OR up.status = 'ACTIVE') " +
            "AND cp.profileCompleted = true")
     Long countCompleteProfiles();
 
@@ -209,7 +242,9 @@ public interface CompleteProfileRepository extends JpaRepository<CompleteProfile
      */
     @Query("SELECT cp FROM CompleteProfile cp " +
            "LEFT JOIN FETCH cp.user u " +
+           "LEFT JOIN FETCH cp.userProfile up " +
            "WHERE cp.deleted = false " +
+           "AND (up IS NULL OR up.status = 'ACTIVE') " +
            "AND cp.profileCompleted = true " +
            "AND cp.completionPercentage >= 60 " +
            "AND (cp.profileVisibility = 'PUBLIC' OR cp.profileVisibility IS NULL) " +

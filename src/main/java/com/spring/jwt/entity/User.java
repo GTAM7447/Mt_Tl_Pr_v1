@@ -5,77 +5,100 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "users",
-       indexes = {
-           @Index(name = "idx_user_email", columnList = "email"),
-           @Index(name = "idx_user_mobile", columnList = "mobile_number"),
-           @Index(name = "idx_user_gender", columnList = "gender"),
-           @Index(name = "idx_user_status", columnList = "completeProfile")
-       })
+@Table(
+        name = "users",
+        indexes = {
+                @Index(name = "idx_user_email", columnList = "email"),
+                @Index(name = "idx_user_mobile", columnList = "mobile_number"),
+                @Index(name = "idx_user_gender", columnList = "gender"),
+                @Index(name = "idx_user_status", columnList = "completeProfile")
+        }
+)
 @EntityListeners(AuditingEntityListener.class)
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
+
+    /* ===================== ID ===================== */
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_seq")
-    @SequenceGenerator(name = "user_seq", sequenceName = "user_sequence", allocationSize = 1, initialValue = 10000)
+    @SequenceGenerator(
+            name = "user_seq",
+            sequenceName = "user_sequence",
+            allocationSize = 1,
+            initialValue = 10000
+    )
     @Column(name = "user_id")
     private Integer id;
 
-    @NotBlank(message = "Email cannot be blank")
+    /* ===================== CORE ===================== */
+
+    @NotBlank
     @Email
-    @Pattern(regexp = "^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$", message = "Invalid email format")
-    @Column(name = "email", nullable = false, length = 250, unique = true)
+    @Pattern(
+            regexp = "^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$",
+            message = "Invalid email format"
+    )
+    @Column(name = "email", nullable = false, unique = true, length = 250)
     private String email;
 
     @Column(name = "mobile_number")
     private Long mobileNumber;
 
-    @Column(name = "password")
+    @Column(name = "password", nullable = false)
     private String password;
 
-    @Column(name = "gender")
     @Enumerated(EnumType.STRING)
+    @Column(name = "gender")
     private Gender gender;
 
     @Column(name = "completeProfile")
-    private Boolean status;
+    private Boolean completeProfile = false;
+
+    /* ===================== SECURITY ===================== */
+
+    @Column(name = "email_verified", nullable = false)
+    private Boolean emailVerified = false;
+
+    @Column(name = "login_attempts", nullable = false)
+    private Integer loginAttempts = 0;
+
+    @Column(name = "account_locked_until")
+    private LocalDateTime accountLockedUntil;
+
+    @Column(name = "last_login")
+    private LocalDateTime lastLogin;
 
     @Column(name = "reset_password_token")
     private String resetPasswordToken;
 
     @Column(name = "reset_password_token_expiry")
     private LocalDateTime resetPasswordTokenExpiry;
-    
-    @Column(name = "last_login")
-    private LocalDateTime lastLogin;
-    
-    @Column(name = "login_attempts")
-    private Integer loginAttempts = 0;
-    
-    @Column(name = "account_locked_until")
-    private LocalDateTime accountLockedUntil;
 
-    @Column(name = "email_verified", nullable = false)
-    private Boolean emailVerified = false;
+    /* ===================== ROLES ===================== */
 
-    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    @JoinTable(name = "user_role", joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "user_id"),
-    inverseJoinColumns = @JoinColumn(name = "role_id", referencedColumnName = "role_id"))
-    private Set<Role> roles;
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "user_role",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles = new HashSet<>();
+
+    /* ===================== VERSION & AUDIT ===================== */
 
     @Version
     @Column(name = "version", nullable = false)
@@ -89,16 +112,107 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    /* ===================== CONSTRUCTOR ===================== */
+
+    public User(String email, String hashedPassword) {
+        changeEmail(email);
+        changePassword(hashedPassword);
+        this.emailVerified = false;
+        this.loginAttempts = 0;
+    }
+
+    /* ===================== DOMAIN BEHAVIOR ===================== */
+
+    public void changeEmail(String email) {
+        if (email == null || !email.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$")) {
+            throw new IllegalArgumentException("Invalid email");
+        }
+        this.email = email.toLowerCase().trim();
+    }
+
+    public void changePassword(String hashedPassword) {
+        if (hashedPassword == null || hashedPassword.length() < 60) {
+            throw new IllegalArgumentException("Password must be hashed");
+        }
+        this.password = hashedPassword;
+    }
+
+    public void changeMobileNumber(Long mobileNumber) {
+        if (mobileNumber != null && mobileNumber <= 0) {
+            throw new IllegalArgumentException("Invalid mobile number");
+        }
+        this.mobileNumber = mobileNumber;
+    }
+
+    public void changeGender(Gender gender) {
+        if (gender == null) {
+            throw new IllegalArgumentException("Gender cannot be null");
+        }
+        this.gender = gender;
+    }
+
+    public void markEmailVerified() {
+        this.emailVerified = true;
+    }
+
+    public void assignRole(Role role) {
+        if (role == null) {
+            throw new IllegalArgumentException("Role cannot be null");
+        }
+        this.roles.add(role);
+    }
+
+    public void removeRole(Role role) {
+        this.roles.remove(role);
+    }
+
+    public void incrementLoginAttempts() {
+        this.loginAttempts++;
+    }
+
+    public void resetLoginAttempts() {
+        this.loginAttempts = 0;
+        this.accountLockedUntil = null;
+    }
+
+    public void lockAccountForMinutes(int minutes) {
+        if (minutes <= 0) {
+            throw new IllegalArgumentException("Invalid lock duration");
+        }
+        this.accountLockedUntil = LocalDateTime.now().plusMinutes(minutes);
+    }
+
+    public boolean isAccountLocked() {
+        return accountLockedUntil != null &&
+                accountLockedUntil.isAfter(LocalDateTime.now());
+    }
+
+    public void updateLastLogin() {
+        this.lastLogin = LocalDateTime.now();
+    }
+
+    public void setPasswordResetToken(String token, LocalDateTime expiry) {
+        if (token == null || token.trim().isEmpty()) {
+            throw new IllegalArgumentException("Token cannot be empty");
+        }
+        if (expiry == null || expiry.isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Expiry must be in the future");
+        }
+        this.resetPasswordToken = token;
+        this.resetPasswordTokenExpiry = expiry;
+    }
+
+    public void clearPasswordResetToken() {
+        this.resetPasswordToken = null;
+        this.resetPasswordTokenExpiry = null;
+    }
+
+    /* ===================== JPA CALLBACK ===================== */
+
     @PrePersist
     protected void onCreate() {
-        if (this.version == null) {
-            this.version = 0;
-        }
-        if (this.loginAttempts == null) {
-            this.loginAttempts = 0;
-        }
-        if (this.emailVerified == null) {
-            this.emailVerified = false;
-        }
+        if (emailVerified == null) emailVerified = false;
+        if (loginAttempts == null) loginAttempts = 0;
+        if (version == null) version = 0;
     }
 }

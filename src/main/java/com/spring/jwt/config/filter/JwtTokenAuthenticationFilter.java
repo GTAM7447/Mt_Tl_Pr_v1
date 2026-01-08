@@ -1,5 +1,6 @@
 package com.spring.jwt.config.filter;
 
+import com.spring.jwt.exception.DeviceFingerprintMismatchException;
 import com.spring.jwt.jwt.JwtConfig;
 import com.spring.jwt.jwt.JwtService;
 import com.spring.jwt.jwt.ActiveSessionService;
@@ -21,6 +22,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -39,6 +41,7 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserDetailsServiceCustom userDetailsService;
     private final ActiveSessionService activeSessionService;
+    private final AuthenticationEntryPoint authenticationEntryPoint;
 
     private static final String REFRESH_TOKEN_COOKIE_NAME = "refresh_token";
     private static final String ACCESS_TOKEN_COOKIE_NAME = "access_token";
@@ -60,9 +63,11 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
         String token = getJwtFromRequest(request);
 
         try {
-
-            if (!jwtService.isValidToken(token)) {
-                log.warn("Invalid token detected");
+            // CRITICAL FIX: Always pass device fingerprint for validation
+            String deviceFingerprint = jwtService.generateDeviceFingerprint(request);
+            
+            if (!jwtService.isValidToken(token, deviceFingerprint)) {
+                log.warn("Invalid token detected for request: {}", request.getRequestURI());
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -102,6 +107,12 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(auth);
             log.debug("Authentication set successfully for user: {} (ID: {}) with authorities: {}", username, userId, authorities);
 
+        } catch (DeviceFingerprintMismatchException e) {
+            // Device fingerprint mismatch - delegate to SecurityExceptionHandler for proper error response
+            log.warn("Device fingerprint mismatch for request: {} - {}", request.getRequestURI(), e.getMessage());
+            SecurityContextHolder.clearContext();
+            authenticationEntryPoint.commence(request, response, e);
+            return;
         } catch (ExpiredJwtException e) {
             log.warn("Expired JWT token for request: {}", request.getRequestURI());
             SecurityContextHolder.clearContext();

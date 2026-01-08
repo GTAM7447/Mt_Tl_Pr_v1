@@ -1,11 +1,13 @@
 package com.spring.jwt.exception;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.spring.jwt.dto.ErrorResponseDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -25,10 +27,10 @@ public class GlobalExceptionHandler {
         log.error("Base exception: {} - {}", ex.getCode(), ex.getMessage());
 
         HttpStatus status = determineHttpStatus(ex);
-        
-        return buildResponse(status, ex.getCode() != null ? ex.getCode() : "APPLICATION_ERROR", 
-                           ex.getMessage() != null ? ex.getMessage() : "An application error occurred", 
-                           request);
+
+        return buildResponse(status, ex.getCode() != null ? ex.getCode() : "APPLICATION_ERROR",
+                ex.getMessage() != null ? ex.getMessage() : "An application error occurred",
+                request);
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
@@ -56,20 +58,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponseDTO> handleAccessDeniedException(AccessDeniedException ex,
             HttpServletRequest request) {
-        log.warn("Access denied (caught by GlobalExceptionHandler): {} - Path: {} - Method: {} - User attempted to access admin endpoint without proper role", 
+        log.warn(
+                "Access denied (caught by GlobalExceptionHandler): {} - Path: {} - Method: {} - User attempted to access admin endpoint without proper role",
                 ex.getMessage(), request.getRequestURI(), request.getMethod());
-        
-        // Provide context-aware error message
+
         String message = "You do not have permission to access this resource.";
         if (request.getRequestURI().contains("/user/")) {
             message = "Admin role required to access user-specific resources.";
         } else if (request.getRequestURI().contains("/admin")) {
             message = "Admin role required to access administrative resources.";
-        } else if (request.getMethod().equals("GET") && (request.getRequestURI().endsWith("/profiles") || 
-                   request.getRequestURI().endsWith("/horoscope") || request.getRequestURI().endsWith("/family-background"))) {
+        } else if (request.getMethod().equals("GET") && (request.getRequestURI().endsWith("/profiles") ||
+                request.getRequestURI().endsWith("/horoscope")
+                || request.getRequestURI().endsWith("/family-background"))) {
             message = "Admin role required to browse all resources.";
         }
-        
+
         return buildResponse(HttpStatus.FORBIDDEN, "ACCESS_DENIED", message, request);
     }
 
@@ -97,6 +100,53 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponseDTO> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex,
+            HttpServletRequest request) {
+        String message = "Invalid request data";
+        String details = null;
+
+        Throwable cause = ex.getCause();
+        if (cause instanceof InvalidFormatException invalidFormatEx) {
+            Class<?> targetType = invalidFormatEx.getTargetType();
+            Object value = invalidFormatEx.getValue();
+
+            if (targetType.isEnum()) {
+                String enumName = targetType.getSimpleName();
+                Object[] enumConstants = targetType.getEnumConstants();
+                StringBuilder validValues = new StringBuilder();
+                for (int i = 0; i < enumConstants.length; i++) {
+                    validValues.append(enumConstants[i]);
+                    if (i < enumConstants.length - 1) {
+                        validValues.append(", ");
+                    }
+                }
+
+                message = String.format("Invalid value '%s' for field '%s'", value, enumName);
+                details = String.format("Accepted values are: %s", validValues);
+
+                log.error("Invalid enum value: {} for {}. Valid values: {}", value, enumName, validValues);
+            } else {
+                log.error("Invalid format for type {}: {}", targetType.getSimpleName(), value);
+                message = String.format("Invalid value format for field type '%s'", targetType.getSimpleName());
+            }
+        } else {
+            log.error("Malformed JSON request: {}", ex.getMessage());
+            message = "Malformed JSON request";
+        }
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponseDTO.builder()
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .errorCode("INVALID_REQUEST_DATA")
+                        .message(message)
+                        .details(details)
+                        .path(request.getRequestURI())
+                        .method(request.getMethod())
+                        .timestamp(LocalDateTime.now())
+                        .build());
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponseDTO> handleIllegalArgumentException(IllegalArgumentException ex,
             HttpServletRequest request) {
@@ -108,21 +158,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleSubscriptionRequiredException(SubscriptionRequiredException ex,
             HttpServletRequest request) {
         log.warn("Subscription required: {}", ex.getMessage());
-        return buildResponse(HttpStatus.PAYMENT_REQUIRED, "SUBSCRIPTION_REQUIRED", 
-            ex.getMessage(), request);
+        return buildResponse(HttpStatus.PAYMENT_REQUIRED, "SUBSCRIPTION_REQUIRED",
+                ex.getMessage(), request);
     }
 
     @ExceptionHandler(UserNotFoundExceptions.class)
     public ResponseEntity<ErrorResponseDTO> handleUserNotFoundException(UserNotFoundExceptions ex,
             HttpServletRequest request) {
         log.warn("User not found: {}", ex.getMessage());
-        
-        // Check if it's an authentication issue
+
         if (ex.getMessage().contains("not authenticated") || ex.getMessage().contains("log in")) {
-            return buildResponse(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED", 
-                ex.getMessage(), request);
+            return buildResponse(HttpStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED",
+                    ex.getMessage(), request);
         }
-        
+
         return buildResponse(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", ex.getMessage(), request);
     }
 
@@ -130,34 +179,33 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleRuntimeException(RuntimeException ex,
             HttpServletRequest request) {
         log.error("Runtime error: {}", ex.getMessage(), ex);
-        
-        // Check if it's a specific business logic error
+
         String message = ex.getMessage();
         if (message != null) {
             if (message.contains("Profile not found")) {
-                return buildResponse(HttpStatus.NOT_FOUND, "PROFILE_NOT_FOUND", 
-                    "Profile not found. The requested profile does not exist or has been deleted.", request);
+                return buildResponse(HttpStatus.NOT_FOUND, "PROFILE_NOT_FOUND",
+                        "Profile not found. The requested profile does not exist or has been deleted.", request);
             }
             if (message.contains("User not found")) {
-                return buildResponse(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", 
-                    "User not found. The requested user does not exist.", request);
+                return buildResponse(HttpStatus.NOT_FOUND, "USER_NOT_FOUND",
+                        "User not found. The requested user does not exist.", request);
             }
             if (message.contains("already exists") || message.contains("duplicate")) {
-                return buildResponse(HttpStatus.CONFLICT, "INTEREST_ALREADY_EXISTS", 
-                    "You have already expressed interest in this user.", request);
+                return buildResponse(HttpStatus.CONFLICT, "INTEREST_ALREADY_EXISTS",
+                        "You have already expressed interest in this user.", request);
             }
             if (message.contains("daily limit")) {
-                return buildResponse(HttpStatus.TOO_MANY_REQUESTS, "DAILY_LIMIT_EXCEEDED", 
-                    "You have reached your daily limit for expressing interest. Try again tomorrow.", request);
+                return buildResponse(HttpStatus.TOO_MANY_REQUESTS, "DAILY_LIMIT_EXCEEDED",
+                        "You have reached your daily limit for expressing interest. Try again tomorrow.", request);
             }
             if (message.contains("subscription") || message.contains("premium")) {
-                return buildResponse(HttpStatus.PAYMENT_REQUIRED, "SUBSCRIPTION_REQUIRED", 
-                    "An active subscription is required to express interest.", request);
+                return buildResponse(HttpStatus.PAYMENT_REQUIRED, "SUBSCRIPTION_REQUIRED",
+                        "An active subscription is required to express interest.", request);
             }
         }
-        
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", 
-            "An unexpected error occurred. Please try again later.", request);
+
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR",
+                "An unexpected error occurred. Please try again later.", request);
     }
 
     private ResponseEntity<ErrorResponseDTO> buildResponse(HttpStatus status, String errorCode, String message,
@@ -179,24 +227,23 @@ public class GlobalExceptionHandler {
     private HttpStatus determineHttpStatus(BaseException ex) {
         String message = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
         String code = ex.getCode() != null ? ex.getCode().toUpperCase() : "";
-        
-        // Check for specific error patterns
-        if (message.contains("already registered") || message.contains("already exists") || 
-            code.contains("ALREADY_EXISTS") || code.contains("DUPLICATE")) {
-            return HttpStatus.CONFLICT; // 409
+
+        if (message.contains("already registered") || message.contains("already exists") ||
+                code.contains("ALREADY_EXISTS") || code.contains("DUPLICATE")) {
+            return HttpStatus.CONFLICT;
         }
-        
+
         if (message.contains("not found") || code.contains("NOT_FOUND")) {
-            return HttpStatus.NOT_FOUND; // 404
+            return HttpStatus.NOT_FOUND;
         }
-        
-        if (message.contains("invalid") || message.contains("validation") || 
-            code.contains("INVALID") || code.contains("VALIDATION")) {
+
+        if (message.contains("invalid") || message.contains("validation") ||
+                code.contains("INVALID") || code.contains("VALIDATION")) {
             return HttpStatus.BAD_REQUEST;
         }
-        
-        if (message.contains("unauthorized") || message.contains("access denied") || 
-            code.contains("UNAUTHORIZED") || code.contains("ACCESS_DENIED")) {
+
+        if (message.contains("unauthorized") || message.contains("access denied") ||
+                code.contains("UNAUTHORIZED") || code.contains("ACCESS_DENIED")) {
             return HttpStatus.FORBIDDEN;
         }
 

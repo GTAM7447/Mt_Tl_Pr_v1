@@ -15,9 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -58,21 +56,18 @@ public class UserAccountCreationService {
     }
 
     private User buildUser(AdminCompleteRegistrationRequest request) {
-        User user = new User();
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setMobileNumber(Long.parseLong(request.getMobileNumber()));
-        user.setGender(Gender.valueOf(request.getGender()));
-        user.setEmailVerified(request.getSkipEmailVerification());
-        user.setRoles(getUserRoles());
+        User user = new User(request.getEmail(), passwordEncoder.encode(request.getPassword()));
+        user.changeMobileNumber(Long.parseLong(request.getMobileNumber()));
+        user.changeGender(Gender.valueOf(request.getGender()));
+        if (request.getSkipEmailVerification()) {
+            user.markEmailVerified();
+        }
+        
+        Role userRole = roleRepository.findByName("USER");
+        if (userRole != null) {
+            user.assignRole(userRole);
+        }
         return user;
-    }
-
-    private Set<Role> getUserRoles() {
-        Set<Role> roles = new HashSet<>();
-        Optional.ofNullable(roleRepository.findByName("USER"))
-                .ifPresent(roles::add);
-        return roles;
     }
 
     private void createCompleteProfile(User user) {

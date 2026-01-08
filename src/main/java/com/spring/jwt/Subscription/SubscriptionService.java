@@ -13,4 +13,6 @@ public interface SubscriptionService {
     SubscriptionDTO update(Integer id, SubscriptionDTO dto);
 
     void delete(Integer id);
+
+    void purchaseSubscription(Integer userId, Integer subscriptionId);
 }

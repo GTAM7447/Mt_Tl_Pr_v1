@@ -32,6 +32,9 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, Intege
     @Query("SELECT up FROM UserProfile up JOIN FETCH up.user WHERE up.user.id = :userId AND up.deleted = false")
     Optional<UserProfile> findByUser_Id(@Param("userId") Integer userId);
 
+    @Query("SELECT up FROM UserProfile up JOIN FETCH up.user WHERE up.user.id = :userId AND up.deleted = false")
+    Optional<UserProfile> findByUserId(@Param("userId") Integer userId);
+
     /**
      * Check if a profile exists for the given user ID (excluding deleted profiles).
      *
@@ -49,7 +52,7 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, Intege
      * @param pageable pagination information
      * @return page of profiles matching the gender
      */
-    @Query("SELECT up FROM UserProfile up JOIN FETCH up.user WHERE up.gender = :gender AND up.deleted = false")
+    @Query("SELECT up FROM UserProfile up JOIN FETCH up.user WHERE up.gender = :gender AND up.deleted = false AND up.status = 'ACTIVE'")
     Page<UserProfile> findByGender(@Param("gender") Gender gender, Pageable pageable);
 
     /**

@@ -111,27 +111,20 @@ public class UserServiceImpl implements UserService {
         // throw new EmailNotVerifiedException("Email not verified");
         // }
 
-        User user = new User();
-        user.setEmail(userDTO.getEmail());
-        user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
-        user.setMobileNumber(userDTO.getMobileNumber());
-        user.setGender(userDTO.getGender());
-        user.setEmailVerified(true);
-
-        Set<Role> roles = new HashSet<>();
+        User user = new User(userDTO.getEmail(), passwordEncoder.encode(userDTO.getPassword()));
+        user.changeMobileNumber(userDTO.getMobileNumber());
+        user.changeGender(userDTO.getGender());
+        user.markEmailVerified();
 
         Role role = roleRepository.findByName(userDTO.getRole());
-
         if (role != null) {
-            roles.add(role);
+            user.assignRole(role);
         } else {
             Role defaultRole = roleRepository.findByName("USER");
             if (defaultRole != null) {
-                roles.add(defaultRole);
+                user.assignRole(defaultRole);
             }
         }
-
-        user.setRoles(roles);
 
         user = userRepository.save(user);
 
@@ -257,8 +250,7 @@ public class UserServiceImpl implements UserService {
             throw new UserNotFoundExceptions("User not found with email: " + email);
         }
 
-        user.setResetPasswordToken(token);
-        user.setResetPasswordTokenExpiry(LocalDateTime.now().plusMinutes(30));
+        user.setPasswordResetToken(token, LocalDateTime.now().plusMinutes(30));
         userRepository.save(user);
         log.debug("Reset password token updated for user: {}", email);
     }
@@ -273,9 +265,8 @@ public class UserServiceImpl implements UserService {
             throw new UserNotFoundExceptions("Invalid or expired token");
         }
 
-        user.setPassword(passwordEncoder.encode(newPassword));
-        user.setResetPasswordToken(null);
-        user.setResetPasswordTokenExpiry(null);
+        user.changePassword(passwordEncoder.encode(newPassword));
+        user.clearPasswordResetToken();
         userRepository.save(user);
         log.info("Password successfully reset for user: {}", user.getEmail());
 
@@ -386,7 +377,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new UserNotFoundExceptions("User not found with id: " + id));
 
         if (request.getMobileNumber() != null) {
-            user.setMobileNumber(request.getMobileNumber());
+            user.changeMobileNumber(request.getMobileNumber());
         }
 
         User updatedUser = userRepository.save(user);

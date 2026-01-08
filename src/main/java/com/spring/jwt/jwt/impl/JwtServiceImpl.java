@@ -1,6 +1,7 @@
 package com.spring.jwt.jwt.impl;
 
 import com.spring.jwt.exception.BaseException;
+import com.spring.jwt.exception.DeviceFingerprintMismatchException;
 import com.spring.jwt.jwt.JwtConfig;
 import com.spring.jwt.jwt.JwtService;
 import com.spring.jwt.jwt.TokenBlacklistService;
@@ -247,40 +248,62 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public boolean isValidToken(String token, String deviceFingerprint) {
         try {
+            log.debug("=== TOKEN VALIDATION START ===");
+            log.debug("Device fingerprinting enabled: {}", jwtConfig.isDeviceFingerprintingEnabled());
+            log.debug("Device fingerprint provided: {}", deviceFingerprint != null ? "YES" : "NO");
+            
             if (isBlacklisted(token)) {
-                log.warn(" Token validation failed: Token is blacklisted");
+                log.warn("❌ Token validation failed: Token is blacklisted");
                 return false;
             }
             
             final String username = extractUsername(token);
             
             if (StringUtils.isEmpty(username)) {
-                log.warn(" Token validation failed: Empty username");
+                log.warn("❌ Token validation failed: Empty username");
                 return false;
             }
     
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
             
             if (ObjectUtils.isEmpty(userDetails)) {
-                log.warn(" Token validation failed: User not found for username: {}", username);
+                log.warn("❌ Token validation failed: User not found for username: {}", username);
                 return false;
             }
 
             Claims claims = extractAllClaims(token);
+            
+            // Log token type
+            String tokenType = claims.get(CLAIM_KEY_TOKEN_TYPE, String.class);
+            log.debug("Token type: {}", tokenType);
 
             Date nbf = claims.getNotBefore();
             if (nbf != null && nbf.after(new Date())) {
-                log.warn(" Token validation failed: Token not yet valid. Current time: {}, Not before: {}",
+                log.warn("❌ Token validation failed: Token not yet valid. Current time: {}, Not before: {}",
                         new Date(), nbf);
                 return false;
             }
             
+            // CRITICAL: Device fingerprint validation - throw specific exception on mismatch
             if (jwtConfig.isDeviceFingerprintingEnabled()) {
                 String tokenDeviceFingerprint = claims.get(CLAIM_KEY_DEVICE_FINGERPRINT, String.class);
-                if (StringUtils.hasText(deviceFingerprint) && StringUtils.hasText(tokenDeviceFingerprint)
-                        && !tokenDeviceFingerprint.equals(deviceFingerprint)) {
-                    log.warn(" Token validation failed: Device fingerprint mismatch for user: {}", username);
-                    return false;
+                log.debug("Token has device fingerprint: {}", tokenDeviceFingerprint != null ? "YES" : "NO");
+                
+                if (StringUtils.hasText(tokenDeviceFingerprint)) {
+                    if (!StringUtils.hasText(deviceFingerprint)) {
+                        log.warn("❌ Token validation failed: Token has device fingerprint but none provided in request for user: {}", username);
+                        throw new DeviceFingerprintMismatchException(
+                            "Token was generated on a different device. Please login again from this device.");
+                    }
+                    if (!tokenDeviceFingerprint.equals(deviceFingerprint)) {
+                        log.warn("❌ Token validation failed: Device fingerprint mismatch for user: {}", username);
+                        log.debug("Expected: {}, Got: {}", 
+                                tokenDeviceFingerprint.substring(0, Math.min(10, tokenDeviceFingerprint.length())),
+                                deviceFingerprint.substring(0, Math.min(10, deviceFingerprint.length())));
+                        throw new DeviceFingerprintMismatchException(
+                            "Token was generated on a different device or browser. Please login again from this device.");
+                    }
+                    log.debug("✓ Device fingerprint matched");
                 }
             }
 
@@ -288,20 +311,25 @@ public class JwtServiceImpl implements JwtService {
                 try {
                     String tokenId = claims.getId();
                     if (StringUtils.hasText(tokenId) && !activeSessionService.isCurrentAccessToken(username, tokenId)) {
-                        log.warn(" Token validation failed: Access token is not current for user: {} (single session enforcement enabled)", username);
+                        log.warn("❌ Token validation failed: Access token is not current for user: {} (single session enforcement enabled)", username);
                         return false;
                     }
+                    log.debug("✓ Single session check passed");
                 } catch (Exception e) {
                     log.warn("⚠️ Could not verify active session: {}", e.getMessage());
                 }
             }
 
-            log.debug(" Token validation successful for user: {}", username);
+            log.debug("✅ Token validation successful for user: {}", username);
+            log.debug("=== TOKEN VALIDATION END ===");
             return true;
+        } catch (DeviceFingerprintMismatchException e) {
+            // Re-throw device fingerprint exception so SecurityExceptionHandler can handle it
+            throw e;
         } catch (Exception e) {
-            log.warn(" Token validation failed with exception for token: {} - {}",
-                    token != null && token.length() > 20 ? token.substring(0, 20) + "..." : "null", 
-                    e.getMessage());
+            log.error("❌ Token validation failed with exception: {}", e.getMessage(), e);
+            log.debug("Token preview: {}", 
+                    token != null && token.length() > 20 ? token.substring(0, 20) + "..." : "null");
             return false;
         }
     }

@@ -3,8 +3,10 @@ package com.spring.jwt.Subscription;
 import com.spring.jwt.entity.Enums.Status;
 import com.spring.jwt.entity.Subscription;
 import com.spring.jwt.exception.ResourceNotFoundException;
+import com.spring.jwt.profile.ProfileActivationService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -12,9 +14,11 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SubscriptionServiceImpl implements SubscriptionService {
 
     private final SubscriptionRepository repo;
+    private final ProfileActivationService profileActivationService;
 
     @Override
     public SubscriptionDTO create(SubscriptionDTO dto) {
@@ -91,5 +95,19 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         Subscription sub = repo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Subscription not found: " + id));
         repo.delete(sub);
+    }
+
+    @Override
+    @Transactional
+    public void purchaseSubscription(Integer userId, Integer subscriptionId) {
+        log.info("User {} purchasing subscription {}", userId, subscriptionId);
+        
+        Subscription subscription = repo.findById(subscriptionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Subscription not found: " + subscriptionId));
+        
+        log.info("Activating profile for user {} after subscription purchase", userId);
+        profileActivationService.activateProfile(userId);
+        
+        log.info("Profile activated successfully for user {}", userId);
     }
 }

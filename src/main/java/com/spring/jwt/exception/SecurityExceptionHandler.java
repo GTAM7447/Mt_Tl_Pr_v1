@@ -13,25 +13,62 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import java.io.IOException;
 
 @Component
 @Slf4j
 @RequiredArgsConstructor
-public class SecurityExceptionHandler implements AuthenticationEntryPoint, AccessDeniedHandler
-{
+public class SecurityExceptionHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
 
     private final ObjectMapper objectMapper;
+    private final RequestMappingHandlerMapping handlerMapping;
 
     /**
      * Handle authentication failures (missing or invalid JWT token)
-     * This is called when a user tries to access a secured endpoint without proper authentication
+     * This is called when a user tries to access a secured endpoint without proper
+     * authentication
      */
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
-                         AuthenticationException authException) throws IOException
-    {
+            AuthenticationException authException) throws IOException {
+        boolean endpointExists = false;
+        try {
+            endpointExists = handlerMapping.getHandler(request) != null;
+        } catch (Exception e) {
+            log.debug("Could not determine if endpoint exists: {}", e.getMessage());
+
+            endpointExists = false;
+        }
+
+        if (!endpointExists) {
+            log.warn("Endpoint not found: {} {}", request.getMethod(), request.getRequestURI());
+
+            ErrorResponseDTO error = ErrorResponseDTO.builder()
+                    .status(404)
+                    .errorCode("ENDPOINT_NOT_FOUND")
+                    .message("The requested endpoint does not exist")
+                    .details(String.format("No handler found for %s %s", request.getMethod(),
+                            request.getRequestURI()))
+                    .path(request.getRequestURI())
+                    .method(request.getMethod())
+                    .timestamp(java.time.LocalDateTime.now())
+                    .suggestedActions(java.util.List.of(
+                            "Check the API documentation for correct endpoint paths",
+                            "Verify the HTTP method (GET, POST, PUT, DELETE) is correct",
+                            "Ensure there are no typos in the URL",
+                            "Common endpoints: /api/v1/users/register, /jwt/login"))
+                    .additionalInfo(java.util.Map.of(
+                            "requestedPath", request.getRequestURI(),
+                            "requestedMethod", request.getMethod()))
+                    .build();
+
+            response.setStatus(HttpStatus.NOT_FOUND.value());
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.getWriter().write(objectMapper.writeValueAsString(error));
+            return;
+        }
 
         log.warn("Authentication failed for request: {} {} - {}",
                 request.getMethod(), request.getRequestURI(), authException.getMessage());
@@ -45,12 +82,12 @@ public class SecurityExceptionHandler implements AuthenticationEntryPoint, Acces
 
     /**
      * Handle authorization failures (valid token but insufficient permissions)
-     * This is called when an authenticated user tries to access a resource they don't have permission for
+     * This is called when an authenticated user tries to access a resource they
+     * don't have permission for
      */
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response,
-                       AccessDeniedException accessDeniedException) throws IOException
-    {
+            AccessDeniedException accessDeniedException) throws IOException {
 
         log.warn("Access denied for request: {} {} - User lacks required permissions",
                 request.getMethod(), request.getRequestURI());
@@ -63,14 +100,35 @@ public class SecurityExceptionHandler implements AuthenticationEntryPoint, Acces
     }
 
     /**
-     * Create detailed authentication error response based on the type of authentication failure
+     * Create detailed authentication error response based on the type of
+     * authentication failure
      */
-    private ErrorResponseDTO createAuthenticationError(HttpServletRequest request, AuthenticationException ex)
-    {
+    private ErrorResponseDTO createAuthenticationError(HttpServletRequest request, AuthenticationException ex) {
         String authHeader = request.getHeader("Authorization");
 
-        if (authHeader == null || authHeader.trim().isEmpty())
-        {
+        if (ex instanceof DeviceFingerprintMismatchException) {
+            return ErrorResponseDTO.builder()
+                    .status(401)
+                    .errorCode("DEVICE_FINGERPRINT_MISMATCH")
+                    .message("Token was generated on a different device or browser")
+                    .details("The JWT token you're using was created on a different device/browser and cannot be used here due to security restrictions.")
+                    .path(request.getRequestURI())
+                    .method(request.getMethod())
+                    .timestamp(java.time.LocalDateTime.now())
+                    .suggestedActions(java.util.List.of(
+                            "Login again from this device/browser to get a new token",
+                            "If you need to use the same account on multiple devices, contact support",
+                            "Clear your browser cache and cookies, then login again",
+                            "Ensure you're not copying tokens between different browsers or devices"))
+                    .additionalInfo(java.util.Map.of(
+                            "reason", "Device fingerprint validation failed",
+                            "securityFeature", "Device fingerprinting is enabled for enhanced security",
+                            "loginEndpoint", "/jwt/login",
+                            "userAgent", request.getHeader("User-Agent") != null ? request.getHeader("User-Agent") : "Unknown"))
+                    .build();
+        }
+
+        if (authHeader == null || authHeader.trim().isEmpty()) {
             return ErrorResponseDTO.builder()
                     .status(401)
                     .errorCode("MISSING_AUTHORIZATION_HEADER")
@@ -82,15 +140,12 @@ public class SecurityExceptionHandler implements AuthenticationEntryPoint, Acces
                     .suggestedActions(java.util.List.of(
                             "Add 'Authorization: Bearer <your-jwt-token>' header to your request",
                             "Ensure you have logged in and obtained a valid JWT token",
-                            "Check that the header name is 'Authorization' (case-sensitive)"
-                    ))
+                            "Check that the header name is 'Authorization' (case-sensitive)"))
                     .additionalInfo(java.util.Map.of(
                             "expectedHeaderFormat", "Authorization: Bearer <jwt-token>",
-                            "loginEndpoint", "/api/v1/auth/login"
-                    ))
+                            "loginEndpoint", "/api/v1/auth/login"))
                     .build();
-        } else if (!authHeader.startsWith("Bearer "))
-        {
+        } else if (!authHeader.startsWith("Bearer ")) {
             return ErrorResponseDTO.builder()
                     .status(401)
                     .errorCode("INVALID_AUTHORIZATION_FORMAT")
@@ -102,15 +157,13 @@ public class SecurityExceptionHandler implements AuthenticationEntryPoint, Acces
                     .suggestedActions(java.util.List.of(
                             "Use format: 'Authorization: Bearer <your-jwt-token>'",
                             "Ensure there's a space after 'Bearer'",
-                            "Remove any extra characters or quotes around the token"
-                    ))
+                            "Remove any extra characters or quotes around the token"))
                     .additionalInfo(java.util.Map.of(
-                            "currentFormat", authHeader.length() > 50 ? authHeader.substring(0, 50) + "..." : authHeader,
-                            "expectedFormat", "Bearer <jwt-token>"
-                    ))
+                            "currentFormat",
+                            authHeader.length() > 50 ? authHeader.substring(0, 50) + "..." : authHeader,
+                            "expectedFormat", "Bearer <jwt-token>"))
                     .build();
-        } else
-        {
+        } else {
             String errorDetails = determineJwtErrorDetails(ex.getMessage());
 
             return ErrorResponseDTO.builder()
@@ -125,61 +178,54 @@ public class SecurityExceptionHandler implements AuthenticationEntryPoint, Acces
                             "Login again to get a fresh JWT token",
                             "Check if your token has expired",
                             "Verify the token is correctly copied without extra spaces",
-                            "Ensure you're using the token from the latest login"
-                    ))
+                            "Ensure you're using the token from the latest login"))
                     .additionalInfo(java.util.Map.of(
                             "tokenLength", authHeader.length() - 7,
-                            "loginEndpoint", "/jwt/login"
-                    ))
+                            "loginEndpoint", "/jwt/login"))
                     .build();
         }
     }
 
     /**
-     * Create detailed access denied error response based on the endpoint being accessed
+     * Create detailed access denied error response based on the endpoint being
+     * accessed
      */
-    private ErrorResponseDTO createAccessDeniedError(HttpServletRequest request, AccessDeniedException ex)
-    {
+    private ErrorResponseDTO createAccessDeniedError(HttpServletRequest request, AccessDeniedException ex) {
         String path = request.getRequestURI();
         String method = request.getMethod();
-        
-        // Determine the specific error message based on the endpoint
+
         String message;
         String details;
         java.util.List<String> suggestedActions;
-        
+
         if (path.contains("/user/")) {
             message = "Admin role required to access user-specific resources";
             details = "You are trying to access another user's data, which requires administrator privileges";
             suggestedActions = java.util.List.of(
                     "Contact your administrator to request admin privileges",
                     "Use endpoints that access your own data instead (e.g., /me endpoints)",
-                    "Verify you are logged in with an admin account"
-            );
+                    "Verify you are logged in with an admin account");
         } else if (path.contains("/admin")) {
             message = "Admin role required to access administrative resources";
             details = "This endpoint is restricted to users with administrator privileges";
             suggestedActions = java.util.List.of(
                     "Contact your administrator to request admin privileges",
                     "Verify you are logged in with an admin account",
-                    "Check if there are alternative user-level endpoints available"
-            );
+                    "Check if there are alternative user-level endpoints available");
         } else if (method.equals("GET") && path.contains("/all")) {
             message = "Admin role required to browse all resources";
             details = "Browsing all resources is restricted to administrators for privacy and security";
             suggestedActions = java.util.List.of(
                     "Use search or filter endpoints instead",
                     "Access only your own resources",
-                    "Contact your administrator for bulk data access"
-            );
+                    "Contact your administrator for bulk data access");
         } else {
             message = "Insufficient permissions to access this resource";
             details = "You do not have the required role or permissions to perform this action";
             suggestedActions = java.util.List.of(
                     "Verify you are logged in with the correct account",
                     "Contact your administrator to request appropriate permissions",
-                    "Check the API documentation for required roles"
-            );
+                    "Check the API documentation for required roles");
         }
 
         return ErrorResponseDTO.builder()
@@ -194,8 +240,7 @@ public class SecurityExceptionHandler implements AuthenticationEntryPoint, Acces
                 .additionalInfo(java.util.Map.of(
                         "requiredRole", determineRequiredRole(path),
                         "endpoint", path,
-                        "httpMethod", method
-                ))
+                        "httpMethod", method))
                 .build();
     }
 
@@ -212,28 +257,22 @@ public class SecurityExceptionHandler implements AuthenticationEntryPoint, Acces
     /**
      * Determine specific JWT error details based on the exception message
      */
-    private String determineJwtErrorDetails(String exceptionMessage)
-    {
-        if (exceptionMessage == null)
-        {
+    private String determineJwtErrorDetails(String exceptionMessage) {
+        if (exceptionMessage == null) {
             return "The provided JWT token is invalid";
         }
 
         String lowerMessage = exceptionMessage.toLowerCase();
 
-        if (lowerMessage.contains("expired"))
-        {
+        if (lowerMessage.contains("expired")) {
             return "Your JWT token has expired. Please login again to get a new token.";
         } else if (lowerMessage.contains("malformed") || lowerMessage.contains("invalid")) {
             return "The JWT token format is invalid. Please ensure you're using a valid token.";
-        } else if (lowerMessage.contains("signature"))
-        {
+        } else if (lowerMessage.contains("signature")) {
             return "JWT token signature verification failed. The token may be tampered with.";
-        } else if (lowerMessage.contains("unsupported"))
-        {
+        } else if (lowerMessage.contains("unsupported")) {
             return "The JWT token format is not supported by this system.";
-        } else
-        {
+        } else {
             return "The provided JWT token is invalid or cannot be processed.";
         }
     }

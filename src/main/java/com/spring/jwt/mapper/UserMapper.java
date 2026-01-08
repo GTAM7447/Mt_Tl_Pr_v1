@@ -71,19 +71,12 @@ public class UserMapper {
             return null;
         }
 
-        try {
-            User user = new User();
-            user.setEmail(dto.getEmail());
-//            user.setFirstName(dto.getFirstName());
-//            user.setLastName(dto.getLastName());
-//            user.setAddress(dto.getAddress());
-            user.setMobileNumber(dto.getMobileNumber());
-            
-            return user;
-        } catch (Exception e) {
-            log.error("Error converting DTO to User: {}", e.getMessage(), e);
-            throw new RuntimeException("Error converting DTO to User", e);
-        }
+        // Note: This method should not be used for creating new users.
+        // Use the User constructor with email and password instead.
+        // This method is kept for backward compatibility but will throw an exception.
+        throw new UnsupportedOperationException(
+            "Cannot create User entity from DTO. Use User constructor with email and hashed password."
+        );
     }
     
     /**

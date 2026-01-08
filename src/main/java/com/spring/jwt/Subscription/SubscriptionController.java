@@ -40,4 +40,13 @@ public class SubscriptionController {
         service.delete(id);
         return ResponseDto.success("Subscription deleted", null);
     }
+
+    @PostMapping("/purchase/{subscriptionId}")
+    @Loggable(action = "PURCHASE_SUBSCRIPTION")
+    public ResponseDto<?> purchaseSubscription(
+            @PathVariable Integer subscriptionId,
+            @RequestParam Integer userId) {
+        service.purchaseSubscription(userId, subscriptionId);
+        return ResponseDto.success("Subscription purchased and profile activated", null);
+    }
 }

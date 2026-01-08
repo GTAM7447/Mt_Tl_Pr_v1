@@ -4,6 +4,7 @@ import com.spring.jwt.exception.DeviceFingerprintMismatchException;
 import com.spring.jwt.jwt.JwtConfig;
 import com.spring.jwt.jwt.JwtService;
 import com.spring.jwt.jwt.ActiveSessionService;
+import com.spring.jwt.service.security.UserDetailsCustom;
 import com.spring.jwt.service.security.UserDetailsServiceCustom;
 import com.spring.jwt.utils.BaseResponseDTO;
 import com.spring.jwt.utils.HelperUtils;
@@ -63,7 +64,6 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
         String token = getJwtFromRequest(request);
 
         try {
-            // CRITICAL FIX: Always pass device fingerprint for validation
             String deviceFingerprint = jwtService.generateDeviceFingerprint(request);
             
             if (!jwtService.isValidToken(token, deviceFingerprint)) {
@@ -75,7 +75,6 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
             Claims claims = jwtService.extractClaims(token);
             String username = claims.getSubject();
 
-            // Extract authorities from token instead of loading from database
             List<String> authorities = claims.get("authorities", List.class);
             if (authorities == null) {
                 authorities = claims.get("roles", List.class);
@@ -89,7 +88,6 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
 
             log.debug("Extracted authorities from token for user {}: {}", username, authorities);
 
-            // Load UserDetailsCustom to use as principal (required by SecurityUtil)
             UserDetailsCustom userDetails = (UserDetailsCustom) userDetailsService.loadUserByUsername(username);
             
             if (userDetails == null) {
@@ -100,7 +98,7 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
 
             UsernamePasswordAuthenticationToken auth =
                     new UsernamePasswordAuthenticationToken(
-                            userDetails,  // Use UserDetailsCustom as principal (required by SecurityUtil)
+                            userDetails,
                             null,
                             authorities.stream()
                                     .map(SimpleGrantedAuthority::new)
@@ -112,7 +110,6 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
                     username, userDetails.getUserId(), authorities);
 
         } catch (DeviceFingerprintMismatchException e) {
-            // Device fingerprint mismatch - delegate to SecurityExceptionHandler for proper error response
             log.warn("Device fingerprint mismatch for request: {} - {}", request.getRequestURI(), e.getMessage());
             SecurityContextHolder.clearContext();
             authenticationEntryPoint.commence(request, response, e);
@@ -182,7 +179,6 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
                 }
 
                 if (authorities != null) {
-                    // Load UserDetailsCustom to use as principal (required by SecurityUtil)
                     UserDetailsCustom userDetails = (UserDetailsCustom) userDetailsService.loadUserByUsername(username);
                     
                     if (userDetails == null) {
@@ -191,7 +187,7 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
                     }
                     
                     UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                            userDetails,  // Use UserDetailsCustom as principal
+                            userDetails,
                             null,
                             authorities.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList())
                     );

@@ -1,10 +1,8 @@
-// Custom Swagger UI Bundle Configuration
-// This file enhances the Swagger UI with custom styling and functionality
+
 
 (function() {
     'use strict';
-    
-    // Wait for Swagger UI to load
+
     function waitForSwaggerUI() {
         if (typeof SwaggerUIBundle !== 'undefined') {
             initializeCustomSwaggerUI();
@@ -14,21 +12,18 @@
     }
     
     function initializeCustomSwaggerUI() {
-        // Inject custom CSS
         const customCSS = document.createElement('link');
         customCSS.rel = 'stylesheet';
         customCSS.type = 'text/css';
         customCSS.href = '/swagger-ui-custom.css';
         document.head.appendChild(customCSS);
-        
-        // Add custom JavaScript functionality
+
         setTimeout(function() {
             addCustomFunctionality();
         }, 1000);
     }
     
     function addCustomFunctionality() {
-        // Add admin badge to admin endpoints
         const adminEndpoints = document.querySelectorAll('[data-tag*="Admin"]');
         adminEndpoints.forEach(function(endpoint) {
             if (!endpoint.querySelector('.admin-badge')) {
@@ -53,10 +48,8 @@
             }
         });
         
-        // Add group indicators
         addGroupIndicators();
         
-        // Add custom header
         addCustomHeader();
     }
     
@@ -129,7 +122,6 @@
         }
     }
     
-    // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', waitForSwaggerUI);
     } else {

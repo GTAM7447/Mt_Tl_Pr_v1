@@ -1,0 +1,973 @@
+{
+	"info": {
+		"_postman_id": "admin-api-complete-collection",
+		"name": "Admin API Complete Collection",
+		"description": "Comprehensive admin API collection for complete user registration workflow and management",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{admin_jwt_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "admin_jwt_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "test_user_id",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Admin Authentication",
+			"item": [
+				{
+					"name": "Admin Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.access_token) {",
+									"        pm.collectionVariables.set('admin_jwt_token', response.access_token);",
+									"        pm.test('Admin login successful', () => {",
+									"            pm.expect(response.access_token).to.not.be.empty;",
+									"        });",
+									"    }",
+									"} else {",
+									"    pm.test('Admin login failed', () => {",
+									"        pm.expect.fail('Login request failed with status: ' + pm.response.code);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@bitflirt.com\",\n    \"password\": \"admin123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "login"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Complete Registration Workflow",
+			"item": [
+				{
+					"name": "Complete User Registration (Single API)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Response has success field', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('success', true);",
+									"    pm.expect(response).to.have.property('userId');",
+									"    pm.expect(response).to.have.property('completedSteps');",
+									"    ",
+									"    if (response.userId) {",
+									"        pm.collectionVariables.set('test_user_id', response.userId);",
+									"    }",
+									"});",
+									"",
+									"pm.test('Workflow steps completed', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response.completedSteps).to.be.an('array');",
+									"    pm.expect(response.completionPercentage).to.be.above(0);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"userDetails\": {\n        \"email\": \"testuser{{$randomInt}}@bitflirt.com\",\n        \"password\": \"SecurePass123!\",\n        \"gender\": \"MALE\",\n        \"mobileNumber\": \"+1{{$randomInt}}\"\n    },\n    \"profileDetails\": {\n        \"firstName\": \"John\",\n        \"lastName\": \"Doe\",\n        \"dateOfBirth\": \"1990-01-15\",\n        \"height\": \"175\",\n        \"weight\": \"70\",\n        \"complexion\": \"FAIR\",\n        \"bodyType\": \"AVERAGE\",\n        \"maritalStatus\": \"SINGLE\"\n    },\n    \"horoscopeDetails\": {\n        \"birthTime\": \"10:30:00\",\n        \"birthPlace\": \"New York\",\n        \"zodiacSign\": \"ARIES\",\n        \"star\": \"ASHWINI\",\n        \"rashi\": \"MESHA\"\n    },\n    \"educationDetails\": {\n        \"highestEducation\": \"MASTERS\",\n        \"educationDetails\": \"Computer Science\",\n        \"profession\": \"SOFTWARE_ENGINEER\",\n        \"workingAs\": \"PRIVATE_SECTOR\",\n        \"annualIncome\": \"100000\",\n        \"workingCity\": \"New York\"\n    },\n    \"familyBackgroundDetails\": {\n        \"fatherName\": \"John Sr.\",\n        \"motherName\": \"Jane Doe\",\n        \"familyType\": \"NUCLEAR\",\n        \"familyStatus\": \"MIDDLE_CLASS\",\n        \"numberOfBrothers\": 1,\n        \"numberOfSisters\": 1\n    },\n    \"partnerPreferenceDetails\": {\n        \"ageRange\": \"25-35\",\n        \"heightRange\": \"160-180\",\n        \"educationPreference\": \"GRADUATE\",\n        \"professionPreference\": \"ANY\",\n        \"incomePreference\": \"50000-150000\",\n        \"maritalStatusPreference\": \"SINGLE\"\n    },\n    \"contactDetails\": {\n        \"address\": \"123 Main Street\",\n        \"city\": \"New York\",\n        \"state\": \"NY\",\n        \"country\": \"USA\",\n        \"pincode\": \"10001\",\n        \"alternatePhone\": \"+1987654321\"\n    },\n    \"workflowOptions\": {\n        \"skipEmailVerification\": true,\n        \"autoVerifyDocuments\": true,\n        \"sendWelcomeEmail\": true,\n        \"activateAccount\": true,\n        \"forceCompleteOptionalSteps\": false,\n        \"notes\": \"Admin created user for testing\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/workflow/complete-registration",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "workflow", "complete-registration"]
+						}
+					}
+				},
+				{
+					"name": "Get Workflow Steps",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response is array of workflow steps', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.be.an('array');",
+									"    pm.expect(response.length).to.be.above(0);",
+									"    ",
+									"    response.forEach(step => {",
+									"        pm.expect(step).to.have.property('stepName');",
+									"        pm.expect(step).to.have.property('stepTitle');",
+									"        pm.expect(step).to.have.property('status');",
+									"        pm.expect(step).to.have.property('required');",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/workflow/user/{{test_user_id}}/steps",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "workflow", "user", "{{test_user_id}}", "steps"]
+						}
+					}
+				},
+				{
+					"name": "Get Workflow Progress",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response has progress information', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('userId');",
+									"    pm.expect(response).to.have.property('totalSteps');",
+									"    pm.expect(response).to.have.property('completionPercentage');",
+									"    pm.expect(response).to.have.property('status');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/workflow/user/{{test_user_id}}/progress",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "workflow", "user", "{{test_user_id}}", "progress"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "3. User Management",
+			"item": [
+				{
+					"name": "Register User (Admin)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('User registration successful', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('message');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"adminuser{{$randomInt}}@bitflirt.com\",\n    \"password\": \"SecurePass123!\",\n    \"gender\": \"FEMALE\",\n    \"mobileNumber\": \"+1{{$randomInt}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/users/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "users", "register"]
+						}
+					}
+				},
+				{
+					"name": "Get All Users",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response has users list', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('users');",
+									"    pm.expect(response).to.have.property('totalElements');",
+									"    pm.expect(response).to.have.property('totalPages');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/users/all?page=0&size=10&sortBy=userId&sortDir=desc",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "users", "all"],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								},
+								{
+									"key": "sortBy",
+									"value": "userId"
+								},
+								{
+									"key": "sortDir",
+									"value": "desc"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get User by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response has user details', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('userId');",
+									"    pm.expect(response).to.have.property('email');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/users/{{test_user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "users", "{{test_user_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Profile Management",
+			"item": [
+				{
+					"name": "Create Profile for User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Profile created successfully', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('profileId');",
+									"    pm.expect(response).to.have.property('userId');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"firstName\": \"Jane\",\n    \"lastName\": \"Smith\",\n    \"dateOfBirth\": \"1992-05-20\",\n    \"height\": \"165\",\n    \"weight\": \"55\",\n    \"complexion\": \"WHEATISH\",\n    \"bodyType\": \"SLIM\",\n    \"maritalStatus\": \"SINGLE\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/profiles/user/{{test_user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "profiles", "user", "{{test_user_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Get Profile by User ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Profile retrieved successfully', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('profileId');",
+									"    pm.expect(response).to.have.property('firstName');",
+									"    pm.expect(response).to.have.property('lastName');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/profiles/user/{{test_user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "profiles", "user", "{{test_user_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Get All Profiles",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Profiles list retrieved', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/profiles/all?page=0&size=10",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "profiles", "all"],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "5. Education Management",
+			"item": [
+				{
+					"name": "Create Education for User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Education created successfully', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('educationId');",
+									"    pm.expect(response).to.have.property('userId');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"highestEducation\": \"BACHELORS\",\n    \"educationDetails\": \"Business Administration\",\n    \"profession\": \"BUSINESS_ANALYST\",\n    \"workingAs\": \"PRIVATE_SECTOR\",\n    \"annualIncome\": \"75000\",\n    \"workingCity\": \"Boston\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/education/user/{{test_user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "education", "user", "{{test_user_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Get Education by User ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Education retrieved successfully', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('educationId');",
+									"    pm.expect(response).to.have.property('highestEducation');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/education/user/{{test_user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "education", "user", "{{test_user_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "6. Partner Preference Management",
+			"item": [
+				{
+					"name": "Create Partner Preference",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Partner preference created successfully', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('partnerPreferenceId');",
+									"    pm.expect(response).to.have.property('userId');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"ageRange\": \"28-38\",\n    \"heightRange\": \"170-185\",\n    \"educationPreference\": \"GRADUATE\",\n    \"professionPreference\": \"ENGINEER\",\n    \"incomePreference\": \"80000-200000\",\n    \"maritalStatusPreference\": \"SINGLE\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/partner-preference/user/{{test_user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "partner-preference", "user", "{{test_user_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Get Partner Preference by User ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Partner preference retrieved successfully', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('partnerPreferenceId');",
+									"    pm.expect(response).to.have.property('ageRange');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/partner-preference/user/{{test_user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "partner-preference", "user", "{{test_user_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "7. Contact Details Management",
+			"item": [
+				{
+					"name": "Create Contact Details",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 201', () => {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Contact details created successfully', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('contactDetailsId');",
+									"    pm.expect(response).to.have.property('userId');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"address\": \"456 Oak Avenue\",\n    \"city\": \"Boston\",\n    \"state\": \"MA\",\n    \"country\": \"USA\",\n    \"pincode\": \"02101\",\n    \"alternatePhone\": \"+1555123456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/contact-details/user/{{test_user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "contact-details", "user", "{{test_user_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Get Contact Details by User ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Contact details retrieved successfully', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('contactDetailsId');",
+									"    pm.expect(response).to.have.property('address');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/contact-details/user/{{test_user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "contact-details", "user", "{{test_user_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Verify Contact Details",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Contact details verified successfully', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('message');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/contact-details/user/{{test_user_id}}/verify?verified=true",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "contact-details", "user", "{{test_user_id}}", "verify"],
+							"query": [
+								{
+									"key": "verified",
+									"value": "true"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "8. Complete Profile Analytics",
+			"item": [
+				{
+					"name": "Get Complete Profile by User ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Complete profile retrieved successfully', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('userId');",
+									"    pm.expect(response).to.have.property('completionPercentage');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/complete-profile/user/{{test_user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "complete-profile", "user", "{{test_user_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Get Missing Profile Sections",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Missing sections retrieved successfully', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('userId');",
+									"    pm.expect(response).to.have.property('missingSections');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/complete-profile/user/{{test_user_id}}/missing",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "complete-profile", "user", "{{test_user_id}}", "missing"]
+						}
+					}
+				},
+				{
+					"name": "Get Profile Statistics",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Profile statistics retrieved successfully', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.be.an('object');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/complete-profile/statistics",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "complete-profile", "statistics"]
+						}
+					}
+				},
+				{
+					"name": "Recalculate Profile Completion",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Profile completion recalculated successfully', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('message');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/complete-profile/user/{{test_user_id}}/recalculate",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "complete-profile", "user", "{{test_user_id}}", "recalculate"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "9. Workflow Analytics",
+			"item": [
+				{
+					"name": "Get Workflow Analytics",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Workflow analytics retrieved successfully', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.be.an('object');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/workflow/analytics?startDate=2025-01-01&endDate=2025-12-31&groupBy=month",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "workflow", "analytics"],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2025-01-01"
+								},
+								{
+									"key": "endDate",
+									"value": "2025-12-31"
+								},
+								{
+									"key": "groupBy",
+									"value": "month"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Users by Workflow Status",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Users by workflow status retrieved successfully', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('users');",
+									"    pm.expect(response).to.have.property('totalElements');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/workflow/users/by-status?status=IN_PROGRESS&page=0&size=10",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "workflow", "users", "by-status"],
+							"query": [
+								{
+									"key": "status",
+									"value": "IN_PROGRESS"
+								},
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "10. Bulk Operations",
+			"item": [
+				{
+					"name": "Bulk Workflow Operation",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', () => {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Bulk operation completed successfully', () => {",
+									"    const response = pm.response.json();",
+									"    pm.expect(response).to.have.property('operation');",
+									"    pm.expect(response).to.have.property('totalUsers');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/workflow/bulk-operation?userIds={{test_user_id}}&operation=complete&reason=Admin bulk completion",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "admin", "workflow", "bulk-operation"],
+							"query": [
+								{
+									"key": "userIds",
+									"value": "{{test_user_id}}"
+								},
+								{
+									"key": "operation",
+									"value": "complete"
+								},
+								{
+									"key": "reason",
+									"value": "Admin bulk completion"
+								}
+							]
+						}
+					}
+				}
+			]
+		}
+	]
+}

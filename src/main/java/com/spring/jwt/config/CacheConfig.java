@@ -72,25 +72,19 @@ public class CacheConfig implements CachingConfigurer {
         return cacheManager;
     }
 
-    /**
-     * Production cache manager - placeholder for Redis or other distributed cache.
-     * Uncomment and configure when moving to production with distributed caching.
-     */
-    /*
     @Bean
-    @Primary
-    @Profile("prod")
-    public CacheManager redisCacheManager(RedisConnectionFactory connectionFactory) {
-        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
-            .entryTtl(Duration.ofMinutes(30))
-            .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-            .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()));
-            
-        return RedisCacheManager.builder(connectionFactory)
-            .cacheDefaults(config)
-            .build();
-    }
-    */
+//    @Primary
+//    @Profile("prod")
+//    public CacheManager redisCacheManager(RedisConnectionFactory connectionFactory) {
+//        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
+//            .entryTtl(Duration.ofMinutes(30))
+//            .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
+//            .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()));
+//
+//        return RedisCacheManager.builder(connectionFactory)
+//            .cacheDefaults(config)
+//            .build();
+//    }
 
     @Override
     public CacheResolver cacheResolver() {

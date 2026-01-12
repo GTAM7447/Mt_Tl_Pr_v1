@@ -88,42 +88,31 @@ public class UserServiceImpl implements UserService {
 
         User user = insertUser(userDTO);
 
-        try {
-            userRepository.save(user);
-            response.setCode(String.valueOf(HttpStatus.OK.value()));
-            response.setMessage("Account Created Successfully !!");
-            response.setUserID(user.getId());
-        } catch (Exception e) {
-            log.error("Error creating account", e);
-            response.setCode(String.valueOf(HttpStatus.SERVICE_UNAVAILABLE.value()));
-            response.setMessage("Service unavailable");
-        }
+        // User is already saved in insertUser(), no need to save again
+        response.setCode(String.valueOf(HttpStatus.OK.value()));
+        response.setMessage("Account Created Successfully !!");
+        response.setUserID(user.getId());
+        
         return response;
     }
 
     @Transactional
     private User insertUser(UserDTO userDTO) {
-        Optional<EmailVerification> emailVerificationOpt = emailVerificationRepo.findByEmail(userDTO.getEmail());
-
-        // if (emailVerificationOpt.isEmpty() ||
-        // EmailVerification.STATUS_NOT_VERIFIED.equals(emailVerificationOpt.get().getStatus()))
-        // {
-        // throw new EmailNotVerifiedException("Email not verified");
-        // }
-
+        // Skip email verification check for now (commented out)
+        
         User user = new User(userDTO.getEmail(), passwordEncoder.encode(userDTO.getPassword()));
         user.changeMobileNumber(userDTO.getMobileNumber());
         user.changeGender(userDTO.getGender());
         user.markEmailVerified();
 
-        Role role = roleRepository.findByName(userDTO.getRole());
+        // Find role once - use provided role or default to USER
+        String roleName = userDTO.getRole() != null ? userDTO.getRole() : "USER";
+        Role role = roleRepository.findByName(roleName);
+        if (role == null) {
+            role = roleRepository.findByName("USER");
+        }
         if (role != null) {
             user.assignRole(role);
-        } else {
-            Role defaultRole = roleRepository.findByName("USER");
-            if (defaultRole != null) {
-                user.assignRole(defaultRole);
-            }
         }
 
         user = userRepository.save(user);
@@ -187,10 +176,11 @@ public class UserServiceImpl implements UserService {
             throw new BaseException(String.valueOf(HttpStatus.BAD_REQUEST.value()), "Email is already registered !!");
         }
 
-        List<String> roles = roleRepository.findAll().stream().map(Role::getName).toList();
-        if (!roles.contains(userDTO.getRole())) {
+        // Use existsByName instead of fetching all roles
+        if (userDTO.getRole() != null && !roleRepository.existsByName(userDTO.getRole())) {
             throw new BaseException(String.valueOf(HttpStatus.BAD_REQUEST.value()), "Invalid role");
         }
+        
         Optional<User> mobileNumber = userRepository.findByMobileNumber(userDTO.getMobileNumber());
         if (!ObjectUtils.isEmpty(mobileNumber)) {
             throw new BaseException(String.valueOf(HttpStatus.BAD_REQUEST.value()),
@@ -340,7 +330,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public Page<UserDTO> getAllUsers(int pageNo, int pageSize) {
         Pageable pageable = PageRequest.of(pageNo, pageSize);
-        Page<User> users = userRepository.findAll(pageable);
+        // Use optimized query with JOIN FETCH to avoid N+1 problem
+        Page<User> users = userRepository.findAllWithRoles(pageable);
 
         return users.map(user -> {
             UserDTO userDTO = userMapper.toDTO(user);
@@ -350,7 +341,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDTO getUserById(Integer id) {
-        User user = userRepository.findById(id)
+        // Use optimized query with JOIN FETCH to avoid N+1 problem
+        User user = userRepository.findByIdWithRoles(id)
                 .orElseThrow(() -> new UserNotFoundExceptions("User not found with id: " + id));
 
         UserDTO userDTO = userMapper.toDTO(user);

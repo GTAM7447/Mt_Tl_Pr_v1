@@ -17,10 +17,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * This class intercepts all responses from controllers and ensures sensitive
- * data is decrypted
+ * This class intercepts responses containing UserDTO and decrypts sensitive data.
+ * Only processes responses from user-related controllers to avoid unnecessary overhead.
  */
-@ControllerAdvice
+@ControllerAdvice(basePackages = {
+    "com.spring.jwt.controller",
+    "com.spring.jwt.admin"
+})
 @RequiredArgsConstructor
 @Slf4j
 public class DecryptionResponseProcessor implements ResponseBodyAdvice<Object> {
@@ -30,8 +33,28 @@ public class DecryptionResponseProcessor implements ResponseBodyAdvice<Object> {
 
     @Override
     public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
-
-        return true;
+        // Only process responses that might contain UserDTO
+        Class<?> returnClass = returnType.getParameterType();
+        
+        // Skip if return type is clearly not user-related
+        if (returnClass.getName().contains("Document") ||
+            returnClass.getName().contains("Horoscope") ||
+            returnClass.getName().contains("Education") ||
+            returnClass.getName().contains("Family") ||
+            returnClass.getName().contains("Partner") ||
+            returnClass.getName().contains("Contact") ||
+            returnClass.getName().contains("Subscription") ||
+            returnClass.getName().contains("ExpressInterest") ||
+            returnClass.getName().contains("Profile") && !returnClass.getName().contains("UserProfile")) {
+            return false;
+        }
+        
+        // Process UserDTO, ResponseAllUsersDto, and generic responses that might contain users
+        return UserDTO.class.isAssignableFrom(returnClass) ||
+               ResponseAllUsersDto.class.isAssignableFrom(returnClass) ||
+               returnClass.getName().contains("User") ||
+               List.class.isAssignableFrom(returnClass) ||
+               Map.class.isAssignableFrom(returnClass);
     }
 
     @Override
@@ -39,17 +62,14 @@ public class DecryptionResponseProcessor implements ResponseBodyAdvice<Object> {
             Class<? extends HttpMessageConverter<?>> selectedConverterType,
             ServerHttpRequest request, ServerHttpResponse response) {
 
+        if (body == null) {
+            return null;
+        }
+
         try {
-            // Add null check before accessing body
-            if (body == null) {
-                log.debug("Response body is null, skipping decryption");
-                return null;
-            }
-            
-            log.debug("Processing response for decryption: {}", body.getClass().getName());
             return processResponse(body);
         } catch (Exception e) {
-            log.error("Error processing response for decryption: {}", e.getMessage(), e);
+            log.warn("Error processing response for decryption: {}", e.getMessage());
             return body;
         }
     }
@@ -59,29 +79,18 @@ public class DecryptionResponseProcessor implements ResponseBodyAdvice<Object> {
             return null;
         }
 
-        if (body.getClass().getName().contains("DocumentResponseDTO") ||
-                body.getClass().getName().contains("DocumentDetailResponseDTO") ||
-                body.getClass().getName().contains("PaginatedDocumentResponseDTO")) {
+        // Skip document-related responses
+        String className = body.getClass().getName();
+        if (className.contains("Document") || className.contains("Horoscope") ||
+            className.contains("Education") || className.contains("Family") ||
+            className.contains("Partner") || className.contains("Contact") ||
+            className.contains("Subscription") || className.contains("ExpressInterest")) {
             return body;
-        }
-
-        if (body instanceof ApiResponse) {
-            ApiResponse<?> response = (ApiResponse<?>) body;
-            Object data = response.getData();
-            if (data != null) {
-                String className = data.getClass().getName();
-                if (className.contains("DocumentResponseDTO") ||
-                        className.contains("DocumentDetailResponseDTO") ||
-                        className.contains("PaginatedDocumentResponseDTO")) {
-                    return body;
-                }
-            }
         }
 
         if (body instanceof ResponseAllUsersDto) {
             ResponseAllUsersDto responseDto = (ResponseAllUsersDto) body;
             if (responseDto.getList() != null) {
-                log.debug("Processing ResponseAllUsersDto with {} items", responseDto.getList().size());
                 for (UserDTO user : responseDto.getList()) {
                     decryptUserDTO(user);
                 }
@@ -99,68 +108,31 @@ public class DecryptionResponseProcessor implements ResponseBodyAdvice<Object> {
             for (Object item : list) {
                 if (item instanceof UserDTO) {
                     decryptUserDTO((UserDTO) item);
-                } else {
-                    processResponse(item);
                 }
             }
             return body;
         }
 
-        if (body instanceof Map) {
-            Map<?, ?> map = (Map<?, ?>) body;
-            for (Object value : map.values()) {
-                if (value instanceof UserDTO) {
-                    decryptUserDTO((UserDTO) value);
-                } else if (value instanceof List) {
-                    processResponse(value);
-                } else if (value instanceof Map) {
-                    processResponse(value);
-                }
-            }
-            return body;
-        }
-
-        try {
-            Map<String, Object> objectMap = objectMapper.convertValue(body, Map.class);
-
-            for (String key : objectMap.keySet()) {
-                Object value = objectMap.get(key);
-
-                if (value instanceof Map || value instanceof List) {
-                    processResponse(value);
-                }
-            }
-
-            if (objectMap.containsKey("list")) {
-                Object listObj = objectMap.get("list");
-                if (listObj instanceof List) {
-                    log.debug("Found 'list' field in response object, processing it");
-                    processResponse(listObj);
-                }
-            }
-
-            return body;
-        } catch (Exception e) {
-            log.debug("Could not process complex object for decryption: {}", e.getMessage());
-            return body;
-        }
+        return body;
     }
 
     private void decryptUserDTO(UserDTO user) {
-        // try {
-        // if (user.getFirstName() != null && !user.getFirstName().isEmpty()) {
-        // user.setFirstName(encryptionUtil.decrypt(user.getFirstName()));
-        // }
-        //
-        // if (user.getLastName() != null && !user.getLastName().isEmpty()) {
-        // user.setLastName(encryptionUtil.decrypt(user.getLastName()));
-        // }
-        //
-        // if (user.getAddress() != null && !user.getAddress().isEmpty()) {
-        // user.setAddress(encryptionUtil.decrypt(user.getAddress()));
-        // }
-        // } catch (Exception e) {
-        // log.error("Error decrypting user data: {}", e.getMessage());
-        // }
+        // Decryption logic - currently disabled
+        // Uncomment and implement when encryption is enabled
+        /*
+        try {
+            if (user.getFirstName() != null && !user.getFirstName().isEmpty()) {
+                user.setFirstName(encryptionUtil.decrypt(user.getFirstName()));
+            }
+            if (user.getLastName() != null && !user.getLastName().isEmpty()) {
+                user.setLastName(encryptionUtil.decrypt(user.getLastName()));
+            }
+            if (user.getAddress() != null && !user.getAddress().isEmpty()) {
+                user.setAddress(encryptionUtil.decrypt(user.getAddress()));
+            }
+        } catch (Exception e) {
+            log.warn("Error decrypting user data for user: {}", user.getEmail());
+        }
+        */
     }
 }

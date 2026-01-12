@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Pattern;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -38,7 +39,7 @@ public class User {
     @SequenceGenerator(
             name = "user_seq",
             sequenceName = "user_sequence",
-            allocationSize = 1,
+            allocationSize = 50,
             initialValue = 10000
     )
     @Column(name = "user_id")
@@ -96,6 +97,7 @@ public class User {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
+    @BatchSize(size = 25)
     private Set<Role> roles = new HashSet<>();
 
     /* ===================== VERSION & AUDIT ===================== */

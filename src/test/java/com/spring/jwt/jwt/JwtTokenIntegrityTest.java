@@ -130,7 +130,6 @@ public class JwtTokenIntegrityTest {
     @Test
     @DisplayName("✅ Authorities Content - No corrupted characters")
     void testAuthoritiesContent_NoCorruption() {
-        // Given
         UserDetailsCustom userDetails = createTestUserDetails();
         String token = jwtService.generateToken(userDetails, null);
 
@@ -149,7 +148,7 @@ public class JwtTokenIntegrityTest {
     }
 
     @Test
-    @DisplayName("✅ Token Decoding - Payload should be valid JSON")
+    @DisplayName("Token Decoding - Payload should be valid JSON")
     void testTokenDecoding_ValidJson() {
         // Given
         UserDetailsCustom userDetails = createTestUserDetails();
@@ -158,6 +157,7 @@ public class JwtTokenIntegrityTest {
         // When
         String[] parts = token.split("\\.");
         String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
+
 
         // Then
         assertTrue(payload.contains("\"sub\""), "Payload should contain subject claim");

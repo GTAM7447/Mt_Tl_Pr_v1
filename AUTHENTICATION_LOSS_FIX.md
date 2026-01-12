@@ -44,7 +44,7 @@ In Spring Security 6 with stateless sessions, the SecurityContext wasn't being p
 @Override
 public String getHeader(String name) {
     String header = super.getHeader(name);
-    return header != null ? sanitize(header) : null;  // ❌ Sanitizes ALL headers
+    return header != null ? sanitize(header) : null;  
 }
 ```
 

@@ -32,20 +32,10 @@ import java.util.Set;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
 
-    /* ===================== ID ===================== */
-
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_seq")
-    @SequenceGenerator(
-            name = "user_seq",
-            sequenceName = "user_sequence",
-            allocationSize = 50,
-            initialValue = 10000
-    )
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
     private Integer id;
-
-    /* ===================== CORE ===================== */
 
     @NotBlank
     @Email
@@ -69,8 +59,6 @@ public class User {
     @Column(name = "completeProfile")
     private Boolean completeProfile = false;
 
-    /* ===================== SECURITY ===================== */
-
     @Column(name = "email_verified", nullable = false)
     private Boolean emailVerified = false;
 
@@ -89,8 +77,6 @@ public class User {
     @Column(name = "reset_password_token_expiry")
     private LocalDateTime resetPasswordTokenExpiry;
 
-    /* ===================== ROLES ===================== */
-
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_role",
@@ -99,8 +85,6 @@ public class User {
     )
     @BatchSize(size = 25)
     private Set<Role> roles = new HashSet<>();
-
-    /* ===================== VERSION & AUDIT ===================== */
 
     @Version
     @Column(name = "version", nullable = false)
@@ -114,16 +98,12 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    /* ===================== CONSTRUCTOR ===================== */
-
     public User(String email, String hashedPassword) {
         changeEmail(email);
         changePassword(hashedPassword);
         this.emailVerified = false;
         this.loginAttempts = 0;
     }
-
-    /* ===================== DOMAIN BEHAVIOR ===================== */
 
     public void changeEmail(String email) {
         if (email == null || !email.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$")) {
@@ -208,8 +188,6 @@ public class User {
         this.resetPasswordToken = null;
         this.resetPasswordTokenExpiry = null;
     }
-
-    /* ===================== JPA CALLBACK ===================== */
 
     @PrePersist
     protected void onCreate() {

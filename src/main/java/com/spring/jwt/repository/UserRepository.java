@@ -24,6 +24,22 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     Map<String, Object> findRawUserById(@Param("id") Long id);
     
     /**
+     * Check if email or mobile number already exists - single query for validation
+     */
+    @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM User u WHERE u.email = :email OR u.mobileNumber = :mobileNumber")
+    boolean existsByEmailOrMobileNumber(@Param("email") String email, @Param("mobileNumber") Long mobileNumber);
+    
+    /**
+     * Check if email exists
+     */
+    boolean existsByEmail(String email);
+    
+    /**
+     * Check if mobile number exists
+     */
+    boolean existsByMobileNumber(Long mobileNumber);
+    
+    /**
      * Fetch all users with roles in a single query to avoid N+1 problem
      */
     @Query(value = "SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.roles",

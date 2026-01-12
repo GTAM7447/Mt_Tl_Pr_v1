@@ -98,17 +98,15 @@ public class UserServiceImpl implements UserService {
 
     @Transactional
     private User insertUser(UserDTO userDTO) {
-        // Skip email verification check for now (commented out)
-        
         User user = new User(userDTO.getEmail(), passwordEncoder.encode(userDTO.getPassword()));
         user.changeMobileNumber(userDTO.getMobileNumber());
         user.changeGender(userDTO.getGender());
         user.markEmailVerified();
 
-        // Find role once - use provided role or default to USER
+        // Find role - cached lookup, falls back to USER if not found
         String roleName = userDTO.getRole() != null ? userDTO.getRole() : "USER";
         Role role = roleRepository.findByName(roleName);
-        if (role == null) {
+        if (role == null && !"USER".equals(roleName)) {
             role = roleRepository.findByName("USER");
         }
         if (role != null) {
@@ -171,20 +169,24 @@ public class UserServiceImpl implements UserService {
             throw new BaseException(String.valueOf(HttpStatus.BAD_REQUEST.value()), "Data must not be empty");
         }
 
-        User user = userRepository.findByEmail(userDTO.getEmail());
-        if (!ObjectUtils.isEmpty(user)) {
-            throw new BaseException(String.valueOf(HttpStatus.BAD_REQUEST.value()), "Email is already registered !!");
+        // Single query to check both email and mobile - much faster than 2 separate queries
+        if (userDTO.getMobileNumber() != null) {
+            if (userRepository.existsByEmailOrMobileNumber(userDTO.getEmail().toLowerCase().trim(), userDTO.getMobileNumber())) {
+                // Need to determine which one exists for proper error message
+                if (userRepository.existsByEmail(userDTO.getEmail().toLowerCase().trim())) {
+                    throw new BaseException(String.valueOf(HttpStatus.BAD_REQUEST.value()), "Email is already registered !!");
+                }
+                throw new BaseException(String.valueOf(HttpStatus.BAD_REQUEST.value()), "Mobile Number is already registered !!");
+            }
+        } else {
+            if (userRepository.existsByEmail(userDTO.getEmail().toLowerCase().trim())) {
+                throw new BaseException(String.valueOf(HttpStatus.BAD_REQUEST.value()), "Email is already registered !!");
+            }
         }
 
-        // Use existsByName instead of fetching all roles
+        // Role validation - existsByName is efficient (uses index)
         if (userDTO.getRole() != null && !roleRepository.existsByName(userDTO.getRole())) {
             throw new BaseException(String.valueOf(HttpStatus.BAD_REQUEST.value()), "Invalid role");
-        }
-        
-        Optional<User> mobileNumber = userRepository.findByMobileNumber(userDTO.getMobileNumber());
-        if (!ObjectUtils.isEmpty(mobileNumber)) {
-            throw new BaseException(String.valueOf(HttpStatus.BAD_REQUEST.value()),
-                    "Mobile Number is already registered !!");
         }
     }
 

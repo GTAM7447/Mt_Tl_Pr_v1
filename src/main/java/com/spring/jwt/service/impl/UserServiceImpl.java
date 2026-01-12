@@ -84,11 +84,11 @@ public class UserServiceImpl implements UserService {
     public BaseResponseDTO registerAccount(UserDTO userDTO) {
         BaseResponseDTO response = new BaseResponseDTO();
 
-        validateAccount(userDTO);
+        // Validate and get role in one step
+        Role role = validateAndGetRole(userDTO);
 
-        User user = insertUser(userDTO);
+        User user = insertUser(userDTO, role);
 
-        // User is already saved in insertUser(), no need to save again
         response.setCode(String.valueOf(HttpStatus.OK.value()));
         response.setMessage("Account Created Successfully !!");
         response.setUserID(user.getId());
@@ -96,25 +96,19 @@ public class UserServiceImpl implements UserService {
         return response;
     }
 
-    @Transactional
-    private User insertUser(UserDTO userDTO) {
+    private User insertUser(UserDTO userDTO, Role role) {
         User user = new User(userDTO.getEmail(), passwordEncoder.encode(userDTO.getPassword()));
         user.changeMobileNumber(userDTO.getMobileNumber());
         user.changeGender(userDTO.getGender());
         user.markEmailVerified();
 
-        // Find role - cached lookup, falls back to USER if not found
-        String roleName = userDTO.getRole() != null ? userDTO.getRole() : "USER";
-        Role role = roleRepository.findByName(roleName);
-        if (role == null && !"USER".equals(roleName)) {
-            role = roleRepository.findByName("USER");
-        }
         if (role != null) {
             user.assignRole(role);
         }
 
         user = userRepository.save(user);
 
+        // Create CompleteProfile - use the entity relationship
         CompleteProfile completeProfile = new CompleteProfile();
         completeProfile.setUser(user);
         completeProfileRepository.save(completeProfile);
@@ -164,15 +158,14 @@ public class UserServiceImpl implements UserService {
         log.info("Created  profile for user ID: {}", user.getId());
     }
 
-    private void validateAccount(UserDTO userDTO) {
+    private Role validateAndGetRole(UserDTO userDTO) {
         if (ObjectUtils.isEmpty(userDTO)) {
             throw new BaseException(String.valueOf(HttpStatus.BAD_REQUEST.value()), "Data must not be empty");
         }
 
-        // Single query to check both email and mobile - much faster than 2 separate queries
+        // Single query to check email/mobile existence
         if (userDTO.getMobileNumber() != null) {
             if (userRepository.existsByEmailOrMobileNumber(userDTO.getEmail().toLowerCase().trim(), userDTO.getMobileNumber())) {
-                // Need to determine which one exists for proper error message
                 if (userRepository.existsByEmail(userDTO.getEmail().toLowerCase().trim())) {
                     throw new BaseException(String.valueOf(HttpStatus.BAD_REQUEST.value()), "Email is already registered !!");
                 }
@@ -184,10 +177,16 @@ public class UserServiceImpl implements UserService {
             }
         }
 
-        // Role validation - existsByName is efficient (uses index)
-        if (userDTO.getRole() != null && !roleRepository.existsByName(userDTO.getRole())) {
+        // Get role directly - no separate exists check needed
+        String roleName = userDTO.getRole() != null ? userDTO.getRole() : "USER";
+        Role role = roleRepository.findByName(roleName);
+        if (role == null && !"USER".equals(roleName)) {
+            role = roleRepository.findByName("USER");
+        }
+        if (role == null && userDTO.getRole() != null) {
             throw new BaseException(String.valueOf(HttpStatus.BAD_REQUEST.value()), "Invalid role");
         }
+        return role;
     }
 
     @Override

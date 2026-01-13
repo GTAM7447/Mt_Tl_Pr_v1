@@ -32,7 +32,7 @@ public class JwtConfig {
 	@Value("${jwt.allowed-clock-skew-seconds:5}")
 	private int allowedClockSkewSeconds;
 
-    @Value("${jwt.secret:3979244226452948404D6251655468576D5A7134743777217A25432A462D4A61}")
+    @Value("${jwt.secret}")
     private String secret;
 
     @Value("${jwt.issuer:Ashutosh}")
@@ -41,7 +41,7 @@ public class JwtConfig {
     @Value("${jwt.audience:Ashutosh-client Side}")
     private String audience;
 
-    @Value("${jwt.device-fingerprinting-enabled:false}")
+    @Value("${jwt.device-fingerprinting-enabled:true}")
     private boolean deviceFingerprintingEnabled;
     
     @Value("${jwt.enforce-single-session:false}")

@@ -42,9 +42,8 @@ public class UserDetailsServiceCustom implements UserDetailsService {
     }
 
     private UserDetailsCustom getUserDetails(String username) {
-        User user = userRepository.findByEmail(username);
+        User user = userRepository.findByEmailWithRoles(username);
         if (ObjectUtils.isEmpty(user)) {
-            // Log the failed attempt with the username/email
             System.out.println("Login failed: User not found for email/username: " + username);
             throw new BaseException(String.valueOf(HttpStatus.BAD_REQUEST.value()), "Invalid username or password!");
         }

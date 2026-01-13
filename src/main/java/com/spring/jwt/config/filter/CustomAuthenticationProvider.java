@@ -29,6 +29,9 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
 
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
@@ -43,7 +46,7 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
             String username = authentication.getName();
             User user;
             try {
-                user = userRepository.findByEmail(username);
+                user = userRepository.findByEmailWithRoles(username);
             } catch (Exception e) {
                 throw new BaseException(String.valueOf(HttpStatus.UNAUTHORIZED.value()), "User not found");
             }
@@ -60,7 +63,7 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
 
         User user;
         try {
-            user = userRepository.findByEmail(username);
+            user = userRepository.findByEmailWithRoles(username);
         }catch (Exception e){
             throw new BaseException(String.valueOf(HttpStatus.UNAUTHORIZED.value()), "User's not found");
         }
@@ -76,7 +79,6 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
         return auth;
     }
     private boolean passwordMatches(String rawPassword, String encodedPassword) {
-        BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
         return passwordEncoder.matches(rawPassword, encodedPassword);
     }
     private List<GrantedAuthority> getAuthorities(List<Role> roles) {

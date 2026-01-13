@@ -250,29 +250,31 @@ public class JwtServiceImpl implements JwtService {
         }
         
         try {
-            String ip = request.getHeader("X-Forwarded-For");
-            if (ip != null && ip.contains(",")) {
-                ip = ip.split(",")[0].trim();
-            }
-            if (ip == null || ip.isBlank()) {
-                ip = request.getRemoteAddr();
-            }
+            // IMPORTANT: Do NOT include IP address in fingerprint
+            // IP addresses change frequently (mobile networks, WiFi, VPN)
+            // This would cause legitimate users to be logged out constantly
+            
             String ua = request.getHeader("User-Agent");
             String lang = request.getHeader("Accept-Language");
             String enc = request.getHeader("Accept-Encoding");
 
+            // Build fingerprint from stable browser characteristics only
             StringBuilder deviceInfo = new StringBuilder();
-            deviceInfo.append(ua).append("|");
-            deviceInfo.append(ip).append("|");
-            deviceInfo.append(lang).append("|");
-            deviceInfo.append(enc);
+            deviceInfo.append(ua != null ? ua : "unknown").append("|");
+            deviceInfo.append(lang != null ? lang : "unknown").append("|");
+            deviceInfo.append(enc != null ? enc : "unknown");
 
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(deviceInfo.toString().getBytes(StandardCharsets.UTF_8));
 
             return Base64.getEncoder().encodeToString(hash);
         } catch (NoSuchAlgorithmException e) {
-            log.error("Error generating device fingerprint", e);
+            log.error("Error generating device fingerprint (SHA-256 not available): {}", e.getMessage());
+            return null;
+        } catch (Exception e) {
+            // PRODUCTION SAFETY: If fingerprint generation fails for any reason, return null
+            // This ensures the application continues to work even if something unexpected happens
+            log.error("Unexpected error generating device fingerprint - returning null for safety: {}", e.getMessage());
             return null;
         }
     }
@@ -337,26 +339,42 @@ public class JwtServiceImpl implements JwtService {
                 return false;
             }
             
-            // CRITICAL: Device fingerprint validation - throw specific exception on mismatch
+            // CRITICAL: Device fingerprint validation with production-safe error handling
             if (jwtConfig.isDeviceFingerprintingEnabled()) {
-                String tokenDeviceFingerprint = claims.get(CLAIM_KEY_DEVICE_FINGERPRINT, String.class);
-                log.debug("Token has device fingerprint: {}", tokenDeviceFingerprint != null ? "YES" : "NO");
-                
-                if (StringUtils.hasText(tokenDeviceFingerprint)) {
-                    if (!StringUtils.hasText(deviceFingerprint)) {
-                        log.warn("❌ Token validation failed: Token has device fingerprint but none provided in request for user: {}", username);
-                        throw new DeviceFingerprintMismatchException(
-                            "Token was generated on a different device. Please login again from this device.");
+                try {
+                    String tokenDeviceFingerprint = claims.get(CLAIM_KEY_DEVICE_FINGERPRINT, String.class);
+                    log.debug("Token has device fingerprint: {}", tokenDeviceFingerprint != null ? "YES" : "NO");
+                    
+                    // Only validate if token actually has a fingerprint
+                    if (StringUtils.hasText(tokenDeviceFingerprint)) {
+                        // If we can't generate a fingerprint from current request, allow it
+                        // This handles edge cases where headers might be missing (proxies, API clients, etc.)
+                        if (!StringUtils.hasText(deviceFingerprint)) {
+                            log.warn("⚠️ Cannot generate device fingerprint from request - allowing request for user: {}", username);
+                            log.debug("✓ Device fingerprint check skipped (cannot generate from request)");
+                        } else if (!tokenDeviceFingerprint.equals(deviceFingerprint)) {
+                            // Fingerprints don't match - this is a different device/browser
+                            log.warn("❌ Token validation failed: Device fingerprint mismatch for user: {}", username);
+                            log.debug("Expected: {}, Got: {}", 
+                                    tokenDeviceFingerprint.substring(0, Math.min(10, tokenDeviceFingerprint.length())),
+                                    deviceFingerprint.substring(0, Math.min(10, deviceFingerprint.length())));
+                            throw new DeviceFingerprintMismatchException(
+                                "Token was generated on a different device or browser. Please login again from this device.");
+                        } else {
+                            log.debug("✓ Device fingerprint matched");
+                        }
+                    } else {
+                        // Token doesn't have fingerprint (old token or fingerprinting was disabled when created)
+                        log.debug("✓ Device fingerprint check skipped (token has no fingerprint)");
                     }
-                    if (!tokenDeviceFingerprint.equals(deviceFingerprint)) {
-                        log.warn("❌ Token validation failed: Device fingerprint mismatch for user: {}", username);
-                        log.debug("Expected: {}, Got: {}", 
-                                tokenDeviceFingerprint.substring(0, Math.min(10, tokenDeviceFingerprint.length())),
-                                deviceFingerprint.substring(0, Math.min(10, deviceFingerprint.length())));
-                        throw new DeviceFingerprintMismatchException(
-                            "Token was generated on a different device or browser. Please login again from this device.");
-                    }
-                    log.debug("✓ Device fingerprint matched");
+                } catch (DeviceFingerprintMismatchException e) {
+                    // Re-throw device mismatch - this is expected security behavior
+                    throw e;
+                } catch (Exception e) {
+                    // PRODUCTION SAFETY: If anything goes wrong with fingerprint validation, allow the request
+                    // This ensures device fingerprinting never breaks legitimate users
+                    log.error("⚠️ Error during device fingerprint validation - allowing request for safety: {}", e.getMessage());
+                    log.debug("✓ Device fingerprint check skipped due to error (fail-safe mode)");
                 }
             }
 

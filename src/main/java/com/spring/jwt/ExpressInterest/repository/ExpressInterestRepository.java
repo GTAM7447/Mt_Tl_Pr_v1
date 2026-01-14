@@ -80,6 +80,18 @@ public interface ExpressInterestRepository extends JpaRepository<ExpressInterest
     @Query("SELECT COUNT(ei) FROM ExpressInterest ei " +
            "WHERE ei.toUser.id = :userId AND ei.deleted = false")
     Long countTotalReceivedByUserId(@Param("userId") Integer userId);
+    
+    /**
+     * Count sent interests by user ID
+     */
+    @Query("SELECT COUNT(ei) FROM ExpressInterest ei WHERE ei.fromUser.id = :userId AND ei.deleted = false")
+    long countByFromUserId(@Param("userId") Integer userId);
+    
+    /**
+     * Count received interests by user ID
+     */
+    @Query("SELECT COUNT(ei) FROM ExpressInterest ei WHERE ei.toUser.id = :userId AND ei.deleted = false")
+    long countByToUserId(@Param("userId") Integer userId);
 
 
     @Query("SELECT COUNT(ei) FROM ExpressInterest ei " +

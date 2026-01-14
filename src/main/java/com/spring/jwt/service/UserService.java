@@ -1,5 +1,6 @@
 package com.spring.jwt.service;
 
+import com.spring.jwt.admin.dto.AdminUserListResponse;
 import com.spring.jwt.dto.ResetPassword;
 import com.spring.jwt.dto.UserDTO;
 import com.spring.jwt.dto.UserProfileDTO;
@@ -27,6 +28,8 @@ public interface UserService {
     ResponseDto processPasswordUpdate(ResetPassword resetRequest);
 
     Page<UserDTO> getAllUsers(int pageNo, int pageSize);
+    
+    Page<AdminUserListResponse> getAllUsersForAdmin(int pageNo, int pageSize);
 
     UserDTO getUserById(Integer id);
     

@@ -1,5 +1,6 @@
 package com.spring.jwt.admin;
 
+import com.spring.jwt.admin.dto.AdminUserListResponse;
 import com.spring.jwt.dto.UserDTO;
 import com.spring.jwt.dto.UserProfileDTO;
 import com.spring.jwt.dto.UserUpdateRequest;
@@ -55,21 +56,21 @@ public class AdminUserController {
 
     @Operation(
         summary = "Get all users (Admin)",
-        description = "Admin can retrieve all users with pagination"
+        description = "Admin can retrieve all users with pagination and complete profile information"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Users retrieved successfully"),
         @ApiResponse(responseCode = "403", description = "Access denied - Admin role required")
     })
     @GetMapping("/all")
-    public ResponseEntity<Page<UserDTO>> getAllUsers(
+    public ResponseEntity<Page<AdminUserListResponse>> getAllUsers(
             @Parameter(description = "Page number (0-based)")
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page number cannot be negative") int page,
             @Parameter(description = "Page size")
             @RequestParam(defaultValue = "10") @Min(value = 1, message = "Page size must be positive") int size) {
         
         log.info("Admin retrieving all users - page: {}, size: {}", page, size);
-        Page<UserDTO> response = userService.getAllUsers(page, size);
+        Page<AdminUserListResponse> response = userService.getAllUsersForAdmin(page, size);
         return ResponseEntity.ok(response);
     }
 

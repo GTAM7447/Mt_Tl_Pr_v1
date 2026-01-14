@@ -4,11 +4,14 @@ import com.spring.jwt.CompleteProfile.CompleteProfileRepository;
 import com.spring.jwt.ContactDetails.ContactDetailsRepository;
 import com.spring.jwt.Document.DocumentRepository;
 import com.spring.jwt.EducationAndProfession.EducationAndProfessionRepository;
+import com.spring.jwt.ExpressInterest.repository.ExpressInterestRepository;
 import com.spring.jwt.FamilyBackground.FamilyBackgroundRepository;
 import com.spring.jwt.HoroscopeDetails.HoroscopeDetailsRepository;
 import com.spring.jwt.PartnerPreference.PartnerPreferenceRepository;
+import com.spring.jwt.admin.dto.AdminUserListResponse;
 import com.spring.jwt.dto.*;
 import com.spring.jwt.entity.*;
+import com.spring.jwt.entity.Enums.Gender;
 import com.spring.jwt.exception.BaseException;
 import com.spring.jwt.exception.UserNotFoundExceptions;
 import com.spring.jwt.repository.RoleRepository;
@@ -69,6 +72,8 @@ public class UserServiceImpl implements UserService {
     private final EmailVerificationRepo emailVerificationRepo;
 
     private final RoleRepository roleRepository;
+    
+    private final ExpressInterestRepository expressInterestRepository;
 
     private final BCryptPasswordEncoder passwordEncoder;
 
@@ -338,6 +343,87 @@ public class UserServiceImpl implements UserService {
             UserDTO userDTO = userMapper.toDTO(user);
             return populateRoleSpecificData(user, userDTO);
         });
+    }
+    
+    @Override
+    public Page<AdminUserListResponse> getAllUsersForAdmin(int pageNo, int pageSize) {
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
+        Page<Map<String, Object>> usersData = userRepository.findAllUsersForAdminList(pageable);
+        
+        return usersData.map(data -> {
+            Integer userId = (Integer) data.get("user_id");
+            
+            // Get express interest counts
+            int sentRequests = getExpressInterestSentCount(userId);
+            int receivedRequests = getExpressInterestReceivedCount(userId);
+            
+            // Build profile ID (e.g., "MAT10001")
+            String profileId = "MAT" + userId;
+            
+            // Map verification status
+            String verificationStatus = data.get("verification_status") != null 
+                ? data.get("verification_status").toString() 
+                : "UNVERIFIED";
+            Boolean identityVerified = data.get("identity_verified") != null 
+                ? (Boolean) data.get("identity_verified") 
+                : false;
+            String verification = identityVerified ? "Verified" : "Non-Verified";
+            
+            // Map membership
+            String membership = data.get("membership") != null 
+                ? data.get("membership").toString() 
+                : "Basic";
+            
+            // Map status
+            String status = data.get("status") != null 
+                ? data.get("status").toString() 
+                : "DEACTIVE";
+            String userStatus = "ACTIVE".equals(status) ? "Active" : "Deactivate";
+            
+            // Map gender
+            String genderStr = data.get("user_gender") != null 
+                ? data.get("user_gender").toString() 
+                : null;
+            Gender gender = genderStr != null ? Gender.valueOf(genderStr) : null;
+            
+            return AdminUserListResponse.builder()
+                    .userId(userId)
+                    .profileId(profileId)
+                    .firstName((String) data.get("first_name"))
+                    .lastName((String) data.get("last_name"))
+                    .age((Integer) data.get("age"))
+                    .city((String) data.get("city"))
+                    .gender(gender)
+                    .religion((String) data.get("religion"))
+                    .caste((String) data.get("caste"))
+                    .profession((String) data.get("occupation"))
+                    .membership(membership)
+                    .verification(verification)
+                    .sendRequests(sentRequests)
+                    .receiveRequests(receivedRequests)
+                    .status(userStatus)
+                    .email((String) data.get("email"))
+                    .mobileNumber(data.get("mobile_number") != null ? ((Number) data.get("mobile_number")).longValue() : null)
+                    .build();
+        });
+    }
+    
+    private int getExpressInterestSentCount(Integer userId) {
+        try {
+            return (int) expressInterestRepository.countByFromUserId(userId);
+        } catch (Exception e) {
+            log.warn("Failed to get sent interest count for user {}: {}", userId, e.getMessage());
+            return 0;
+        }
+    }
+    
+    private int getExpressInterestReceivedCount(Integer userId) {
+        try {
+            return (int) expressInterestRepository.countByToUserId(userId);
+        } catch (Exception e) {
+            log.warn("Failed to get received interest count for user {}: {}", userId, e.getMessage());
+            return 0;
+        }
     }
 
     @Override

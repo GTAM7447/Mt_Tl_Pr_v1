@@ -1,0 +1,158 @@
+{
+	"info": {
+		"_postman_id": "admin-api-complete-v2",
+		"name": "Admin API Complete Collection",
+		"description": "All Admin APIs for Matrimony Application",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{admin_jwt_token}}", "type": "string"}]},
+	"variable": [
+		{"key": "base_url", "value": "http://localhost:8080", "type": "string"},
+		{"key": "admin_jwt_token", "value": "", "type": "string"},
+		{"key": "test_user_id", "value": "10001", "type": "string"}
+	],
+	"item": [
+		{"name": "1. Authentication", "item": [
+			{"name": "Admin Login", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}],
+				"body": {"mode": "raw", "raw": "{\"email\": \"admin@example.com\", \"password\": \"admin123\"}"},
+				"url": {"raw": "{{base_url}}/jwt/login", "host": ["{{base_url}}"], "path": ["jwt", "login"]}},
+				"event": [{"listen": "test", "script": {"exec": ["if(pm.response.code===200){var r=pm.response.json();if(r.access_token)pm.collectionVariables.set('admin_jwt_token',r.access_token);}"], "type": "text/javascript"}}]}
+		]},
+		{"name": "2. User Management", "item": [
+			{"name": "Register User", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}],
+				"body": {"mode": "raw", "raw": "{\"email\": \"user@example.com\", \"password\": \"Pass123!\", \"gender\": \"MALE\", \"mobileNumber\": 9876543210}"},
+				"url": {"raw": "{{base_url}}/api/v1/admin/users/register", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "users", "register"]}}},
+			{"name": "Get All Users", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/users/all?page=0&size=10", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "users", "all"], "query": [{"key": "page", "value": "0"}, {"key": "size", "value": "10"}]}}},
+			{"name": "Get User by ID", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/users/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "users", "{{test_user_id}}"]}}},
+			{"name": "Get User Profile", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/users/{{test_user_id}}/profile", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "users", "{{test_user_id}}", "profile"]}}},
+			{"name": "Update User", "request": {"method": "PATCH", "header": [{"key": "Content-Type", "value": "application/json"}],
+				"body": {"mode": "raw", "raw": "{\"mobileNumber\": 9876543211}"},
+				"url": {"raw": "{{base_url}}/api/v1/admin/users/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "users", "{{test_user_id}}"]}}}
+		]},
+		{"name": "3. Profile Activation", "item": [
+			{"name": "Activate Profile", "request": {"method": "POST",
+				"url": {"raw": "{{base_url}}/api/v1/admin/profile-activation/activate/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "profile-activation", "activate", "{{test_user_id}}"]}}},
+			{"name": "Deactivate Profile", "request": {"method": "POST",
+				"url": {"raw": "{{base_url}}/api/v1/admin/profile-activation/deactivate/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "profile-activation", "deactivate", "{{test_user_id}}"]}}},
+			{"name": "Get Profile Status", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/profile-activation/status/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "profile-activation", "status", "{{test_user_id}}"]}}},
+			{"name": "Toggle Profile Status", "request": {"method": "POST",
+				"url": {"raw": "{{base_url}}/api/v1/admin/profile-activation/toggle/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "profile-activation", "toggle", "{{test_user_id}}"]}}}
+		]},
+		{"name": "4. Profile Management", "item": [
+			{"name": "Create Profile", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}],
+				"body": {"mode": "raw", "raw": "{\"firstName\": \"John\", \"lastName\": \"Doe\", \"dateOfBirth\": \"1990-01-15\", \"height\": \"175\", \"weight\": \"70\", \"complexion\": \"FAIR\", \"bodyType\": \"AVERAGE\", \"maritalStatus\": \"SINGLE\"}"},
+				"url": {"raw": "{{base_url}}/api/v1/admin/profiles/user/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "profiles", "user", "{{test_user_id}}"]}}},
+			{"name": "Get Profile by User ID", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/profiles/user/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "profiles", "user", "{{test_user_id}}"]}}},
+			{"name": "Update Profile", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}],
+				"body": {"mode": "raw", "raw": "{\"firstName\": \"John\", \"lastName\": \"Smith\"}"},
+				"url": {"raw": "{{base_url}}/api/v1/admin/profiles/user/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "profiles", "user", "{{test_user_id}}"]}}},
+			{"name": "Get All Profiles", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/profiles/all?page=0&size=10&sortBy=profileId&sortDir=asc", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "profiles", "all"], "query": [{"key": "page", "value": "0"}, {"key": "size", "value": "10"}, {"key": "sortBy", "value": "profileId"}, {"key": "sortDir", "value": "asc"}]}}},
+			{"name": "Delete Profile", "request": {"method": "DELETE",
+				"url": {"raw": "{{base_url}}/api/v1/admin/profiles/user/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "profiles", "user", "{{test_user_id}}"]}}},
+			{"name": "Restore Profile", "request": {"method": "PATCH",
+				"url": {"raw": "{{base_url}}/api/v1/admin/profiles/user/{{test_user_id}}/restore", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "profiles", "user", "{{test_user_id}}", "restore"]}}}
+		]},
+		{"name": "5. Education Management", "item": [
+			{"name": "Create Education", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}],
+				"body": {"mode": "raw", "raw": "{\"highestEducation\": \"MASTERS\", \"educationDetails\": \"Computer Science\", \"profession\": \"SOFTWARE_ENGINEER\", \"workingAs\": \"PRIVATE_SECTOR\", \"annualIncome\": \"100000\", \"workingCity\": \"New York\"}"},
+				"url": {"raw": "{{base_url}}/api/v1/admin/education/user/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "education", "user", "{{test_user_id}}"]}}},
+			{"name": "Get Education by User ID", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/education/user/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "education", "user", "{{test_user_id}}"]}}},
+			{"name": "Get Education Statistics", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/education/statistics", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "education", "statistics"]}}},
+			{"name": "Search Education", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/education/search?page=0&size=10&occupation=SOFTWARE_ENGINEER", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "education", "search"], "query": [{"key": "page", "value": "0"}, {"key": "size", "value": "10"}, {"key": "occupation", "value": "SOFTWARE_ENGINEER"}]}}}
+		]},
+		{"name": "6. Family Background", "item": [
+			{"name": "Create Family Background", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}],
+				"body": {"mode": "raw", "raw": "{\"fatherName\": \"John Sr.\", \"motherName\": \"Jane Doe\", \"familyType\": \"NUCLEAR\", \"familyStatus\": \"MIDDLE_CLASS\", \"numberOfBrothers\": 1, \"numberOfSisters\": 1}"},
+				"url": {"raw": "{{base_url}}/api/v1/admin/family-background/user/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "family-background", "user", "{{test_user_id}}"]}}},
+			{"name": "Get Family Background", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/family-background/user/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "family-background", "user", "{{test_user_id}}"]}}}
+		]},
+		{"name": "7. Partner Preference", "item": [
+			{"name": "Create Partner Preference", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}],
+				"body": {"mode": "raw", "raw": "{\"ageRange\": \"25-35\", \"heightRange\": \"160-180\", \"educationPreference\": \"GRADUATE\", \"professionPreference\": \"ANY\", \"incomePreference\": \"50000-150000\", \"maritalStatusPreference\": \"SINGLE\"}"},
+				"url": {"raw": "{{base_url}}/api/v1/admin/partner-preference/user/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "partner-preference", "user", "{{test_user_id}}"]}}},
+			{"name": "Get Partner Preference", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/partner-preference/user/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "partner-preference", "user", "{{test_user_id}}"]}}},
+			{"name": "Get Statistics", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/partner-preference/statistics", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "partner-preference", "statistics"]}}},
+			{"name": "Search Partner Preferences", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/partner-preference/search?page=0&size=10", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "partner-preference", "search"], "query": [{"key": "page", "value": "0"}, {"key": "size", "value": "10"}]}}},
+			{"name": "Get Compatibility Score", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/partner-preference/compatibility/{{test_user_id}}/10002", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "partner-preference", "compatibility", "{{test_user_id}}", "10002"]}}}
+		]},
+		{"name": "8. Contact Details", "item": [
+			{"name": "Create Contact Details", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}],
+				"body": {"mode": "raw", "raw": "{\"address\": \"123 Main Street\", \"city\": \"New York\", \"state\": \"NY\", \"country\": \"USA\", \"pincode\": \"10001\", \"alternatePhone\": \"+1987654321\"}"},
+				"url": {"raw": "{{base_url}}/api/v1/admin/contact-details/user/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "contact-details", "user", "{{test_user_id}}"]}}},
+			{"name": "Get Contact Details", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/contact-details/user/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "contact-details", "user", "{{test_user_id}}"]}}},
+			{"name": "Get All Contact Details", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/contact-details/all?page=0&size=10", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "contact-details", "all"], "query": [{"key": "page", "value": "0"}, {"key": "size", "value": "10"}]}}},
+			{"name": "Get Statistics", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/contact-details/statistics", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "contact-details", "statistics"]}}},
+			{"name": "Search by Location", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/contact-details/search/location?page=0&size=10&city=New York", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "contact-details", "search", "location"], "query": [{"key": "page", "value": "0"}, {"key": "size", "value": "10"}, {"key": "city", "value": "New York"}]}}}
+		]},
+		{"name": "9. Horoscope Management", "item": [
+			{"name": "Create Horoscope", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}],
+				"body": {"mode": "raw", "raw": "{\"birthTime\": \"10:30:00\", \"birthPlace\": \"New York\", \"zodiacSign\": \"ARIES\", \"star\": \"ASHWINI\", \"rashi\": \"MESHA\"}"},
+				"url": {"raw": "{{base_url}}/api/v1/admin/horoscope/user/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "horoscope", "user", "{{test_user_id}}"]}}},
+			{"name": "Get Horoscope", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/horoscope/user/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "horoscope", "user", "{{test_user_id}}"]}}},
+			{"name": "Delete Horoscope", "request": {"method": "DELETE",
+				"url": {"raw": "{{base_url}}/api/v1/admin/horoscope/user/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "horoscope", "user", "{{test_user_id}}"]}}},
+			{"name": "Restore Horoscope", "request": {"method": "PATCH",
+				"url": {"raw": "{{base_url}}/api/v1/admin/horoscope/user/{{test_user_id}}/restore", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "horoscope", "user", "{{test_user_id}}", "restore"]}}}
+		]},
+		{"name": "10. Document Management", "item": [
+			{"name": "Upload Document", "request": {"method": "POST", "header": [],
+				"body": {"mode": "formdata", "formdata": [{"key": "file", "type": "file", "src": ""}, {"key": "documentType", "value": "PROFILE_PHOTO", "type": "text"}, {"key": "description", "value": "Profile photo", "type": "text"}]},
+				"url": {"raw": "{{base_url}}/api/v1/admin/documents/user/{{test_user_id}}/upload", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "documents", "user", "{{test_user_id}}", "upload"]}}},
+			{"name": "Get Documents by User", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/documents/user/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "documents", "user", "{{test_user_id}}"]}}},
+			{"name": "Get Document by ID", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/documents/1/user/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "documents", "1", "user", "{{test_user_id}}"]}}},
+			{"name": "Get Document by Type", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/documents/user/{{test_user_id}}/type/PROFILE_PHOTO", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "documents", "user", "{{test_user_id}}", "type", "PROFILE_PHOTO"]}}},
+			{"name": "Delete Document", "request": {"method": "DELETE",
+				"url": {"raw": "{{base_url}}/api/v1/admin/documents/1/user/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "documents", "1", "user", "{{test_user_id}}"]}}},
+			{"name": "Download Document", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/documents/1/user/{{test_user_id}}/download", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "documents", "1", "user", "{{test_user_id}}", "download"]}}},
+			{"name": "Get Document Count", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/documents/user/{{test_user_id}}/count", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "documents", "user", "{{test_user_id}}", "count"]}}},
+			{"name": "Check Document Exists", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/documents/user/{{test_user_id}}/exists/PROFILE_PHOTO", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "documents", "user", "{{test_user_id}}", "exists", "PROFILE_PHOTO"]}}}
+		]},
+		{"name": "11. Complete Profile", "item": [
+			{"name": "Get Complete Profile", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/complete-profile/user/{{test_user_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "complete-profile", "user", "{{test_user_id}}"]}}},
+			{"name": "Get Missing Sections", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/complete-profile/user/{{test_user_id}}/missing", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "complete-profile", "user", "{{test_user_id}}", "missing"]}}},
+			{"name": "Get All Complete Profiles", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/complete-profile/all?page=0&size=10", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "complete-profile", "all"], "query": [{"key": "page", "value": "0"}, {"key": "size", "value": "10"}]}}},
+			{"name": "Get Profile Statistics", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/complete-profile/statistics", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "complete-profile", "statistics"]}}},
+			{"name": "Recalculate Profile", "request": {"method": "POST",
+				"url": {"raw": "{{base_url}}/api/v1/admin/complete-profile/user/{{test_user_id}}/recalculate", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "complete-profile", "user", "{{test_user_id}}", "recalculate"]}}},
+			{"name": "Get Top Profiles", "request": {"method": "GET",
+				"url": {"raw": "{{base_url}}/api/v1/admin/complete-profile/top-profiles?page=0&size=10", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "complete-profile", "top-profiles"], "query": [{"key": "page", "value": "0"}, {"key": "size", "value": "10"}]}}},
+			{"name": "Get Profile Analytics", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}],
+				"body": {"mode": "raw", "raw": "{\"startDate\": \"2025-01-01\", \"endDate\": \"2025-12-31\"}"},
+				"url": {"raw": "{{base_url}}/api/v1/admin/complete-profile/analytics", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "complete-profile", "analytics"]}}}
+		]},
+		{"name": "12. Registration Orchestration", "item": [
+			{"name": "Complete User Registration", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}],
+				"body": {"mode": "raw", "raw": "{\n    \"email\": \"newuser@example.com\",\n    \"password\": \"SecurePass123!\",\n    \"gender\": \"MALE\",\n    \"mobileNumber\": 9876543210,\n    \"profileDetails\": {\n        \"firstName\": \"John\",\n        \"lastName\": \"Doe\",\n        \"dateOfBirth\": \"1990-01-15\"\n    },\n    \"educationDetails\": {\n        \"highestEducation\": \"MASTERS\",\n        \"profession\": \"SOFTWARE_ENGINEER\"\n    }\n}"},
+				"url": {"raw": "{{base_url}}/api/v1/admin/registration/complete", "host": ["{{base_url}}"], "path": ["api", "v1", "admin", "registration", "complete"]}}}
+		]}
+	]
+}

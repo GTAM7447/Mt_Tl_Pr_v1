@@ -6,6 +6,7 @@ import com.spring.jwt.exception.SubscriptionRequiredException;
 import com.spring.jwt.exception.UserNotFoundExceptions;
 import com.spring.jwt.repository.UserRepository;
 import com.spring.jwt.UserCredit.UserCreditRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
@@ -30,6 +31,22 @@ public class SubscriptionValidationAspect {
     @Before("@annotation(com.spring.jwt.aspect.RequiresSubscription)")
     public void validateSubscription(JoinPoint joinPoint) {
         log.debug("SubscriptionValidationAspect triggered for method: {}", joinPoint.getSignature().getName());
+
+        try {
+            org.springframework.web.context.request.RequestAttributes requestAttributes = 
+                org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+            if (requestAttributes != null) {
+                HttpServletRequest request =
+                    ((org.springframework.web.context.request.ServletRequestAttributes) requestAttributes).getRequest();
+                String requestURI = request.getRequestURI();
+                if (requestURI != null && requestURI.contains("/admin/")) {
+                    log.debug("Skipping subscription validation for admin endpoint: {}", requestURI);
+                    return;
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Could not check request URI: {}", e.getMessage());
+        }
         
         String email = getCurrentUserEmail();
         log.debug("Validating subscription for user: {}", email);
@@ -38,6 +55,14 @@ public class SubscriptionValidationAspect {
         if (user == null) {
             log.warn("User not found with email: {}", email);
             throw new UserNotFoundExceptions("User not found: " + email);
+        }
+
+        boolean isAdmin = user.getRoles().stream()
+                .anyMatch(role -> "ADMIN".equals(role.getName()));
+        
+        if (isAdmin) {
+            log.debug("Skipping subscription validation for admin user: {}", email);
+            return;
         }
 
         if (!hasActiveSubscription(user.getId())) {

@@ -276,6 +276,12 @@ public class ProfileServiceImpl implements ProfileService {
      * Synchronize CompleteProfile entity when profile is created.
      */
     private void synchronizeCompleteProfile(User user, UserProfile profile) {
+        // Skip async updates during admin registration for performance
+        if (com.spring.jwt.admin.service.AdminRegistrationContext.isAdminRegistration()) {
+            log.debug("Skipping CompleteProfile sync during admin registration for user ID: {}", user.getId());
+            return;
+        }
+        
         CompleteProfile completeProfile = completeProfileRepository.findByUser_Id(user.getId())
                 .orElseGet(() -> {
                     CompleteProfile newCp = new CompleteProfile();

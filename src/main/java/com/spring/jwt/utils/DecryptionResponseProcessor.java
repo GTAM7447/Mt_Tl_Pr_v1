@@ -33,10 +33,8 @@ public class DecryptionResponseProcessor implements ResponseBodyAdvice<Object> {
 
     @Override
     public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
-        // Only process responses that might contain UserDTO
         Class<?> returnClass = returnType.getParameterType();
-        
-        // Skip if return type is clearly not user-related
+
         if (returnClass.getName().contains("Document") ||
             returnClass.getName().contains("Horoscope") ||
             returnClass.getName().contains("Education") ||
@@ -48,8 +46,7 @@ public class DecryptionResponseProcessor implements ResponseBodyAdvice<Object> {
             returnClass.getName().contains("Profile") && !returnClass.getName().contains("UserProfile")) {
             return false;
         }
-        
-        // Process UserDTO, ResponseAllUsersDto, and generic responses that might contain users
+
         return UserDTO.class.isAssignableFrom(returnClass) ||
                ResponseAllUsersDto.class.isAssignableFrom(returnClass) ||
                returnClass.getName().contains("User") ||
@@ -79,7 +76,6 @@ public class DecryptionResponseProcessor implements ResponseBodyAdvice<Object> {
             return null;
         }
 
-        // Skip document-related responses
         String className = body.getClass().getName();
         if (className.contains("Document") || className.contains("Horoscope") ||
             className.contains("Education") || className.contains("Family") ||

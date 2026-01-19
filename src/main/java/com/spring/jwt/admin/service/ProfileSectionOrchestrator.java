@@ -103,19 +103,30 @@ public class ProfileSectionOrchestrator {
                         responseUpdater.accept(result);
                         response.getCreatedSections().add(sectionName);
                         log.info("{} created for user", sectionName);
+                    } catch (com.spring.jwt.exception.ResourceAlreadyExistsException e) {
+                        // Re-throw with original message - don't wrap
+                        log.error("{} creation failed: {}", sectionName, e.getMessage());
+                        throw e;
                     } catch (IllegalArgumentException e) {
+                        // Validation errors - preserve original message
                         log.error("Validation error creating {}: {}", sectionName, e.getMessage());
                         throw new BaseException(
                                 String.valueOf(HttpStatus.BAD_REQUEST.value()),
-                                sectionName + " validation failed: " + e.getMessage()
+                                e.getMessage()
                         );
+                    } catch (BaseException e) {
+                        // Re-throw BaseException with original details
+                        log.error("Error creating {}: {}", sectionName, e.getMessage());
+                        throw e;
                     } catch (Exception e) {
-                        log.error("Failed to create {}", sectionName, e);
+                        // Unexpected errors - provide context but preserve original message
+                        log.error("Unexpected error creating {}", sectionName, e);
                         throw new BaseException(
                                 String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value()),
-                                "Failed to create " + sectionName + ": " + e.getMessage()
+                                sectionName + " creation failed: " + e.getMessage()
                         );
                     }
                 });
     }
-}
+    }
+

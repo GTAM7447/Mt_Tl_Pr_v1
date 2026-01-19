@@ -156,7 +156,7 @@ public class FamilyBackgroundServiceImpl implements FamilyBackgroundService {
                     "Family background has been modified by another transaction. Please refresh and try again.", e);
         } catch (IllegalArgumentException e) {
             log.warn("Invalid input during family background update for user {}: {}", currentUserId, e.getMessage());
-            throw e; // Re-throw to be handled by exception handler
+            throw e;
         } catch (Exception e) {
             log.error("Unexpected error during family background update for user {}: {}", currentUserId, e.getMessage(), e);
             throw new RuntimeException("Failed to update family background", e);

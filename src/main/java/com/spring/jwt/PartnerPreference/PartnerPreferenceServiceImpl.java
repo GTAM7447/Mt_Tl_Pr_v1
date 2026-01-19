@@ -258,7 +258,7 @@ public class PartnerPreferenceServiceImpl implements PartnerPreferenceService {
     }
 
     private void synchronizeCompleteProfileAsync(User user, PartnerPreference partnerPreference) {
-        // Skip async updates during admin registration for performance
+
         if (com.spring.jwt.admin.service.AdminRegistrationContext.isAdminRegistration()) {
             log.debug("Skipping CompleteProfile sync during admin registration for user ID: {}", user.getId());
             return;

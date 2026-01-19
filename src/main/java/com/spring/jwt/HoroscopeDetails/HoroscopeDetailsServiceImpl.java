@@ -181,7 +181,6 @@ public class HoroscopeDetailsServiceImpl implements HoroscopeDetailsService {
      * Asynchronously synchronize CompleteProfile when horoscope is created.
      */
     private void synchronizeCompleteProfileAsync(User user, HoroscopeDetails horoscope) {
-        // Skip async updates during admin registration for performance
         if (com.spring.jwt.admin.service.AdminRegistrationContext.isAdminRegistration()) {
             log.debug("Skipping CompleteProfile sync during admin registration for user ID: {}", user.getId());
             return;

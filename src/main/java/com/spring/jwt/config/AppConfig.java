@@ -81,8 +81,7 @@ public class AppConfig {
 
         @Bean
         public BCryptPasswordEncoder passwordEncoder() {
-                // Strength 10 is the default and provides good security with reasonable performance
-                // Strength 14 was causing 6+ second login times
+
                 return new BCryptPasswordEncoder(10);
         }
 

@@ -21,33 +21,60 @@ public class AdminRegistrationOrchestrationServiceImpl implements AdminRegistrat
     private final ProfileCompletionCalculator profileCompletionCalculator;
     private final AdminContextService adminContextService;
 
+    /**
+     * Register a complete user with all profile sections in a single transaction.
+     * All changes are rolled back if any exception occurs.
+     * 
+     * @param request the complete registration request
+     * @return comprehensive response with created entity IDs
+     * @throws BaseException if registration fails
+     */
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class) // Explicit rollback for all exceptions
     public AdminCompleteRegistrationResponse registerCompleteUser(AdminCompleteRegistrationRequest request) {
         log.info("Starting complete user registration for email: {}", request.getEmail());
-        
-        String adminEmail = adminContextService.getCurrentAdminEmail();
-        log.info("Registration initiated by admin: {}", adminEmail);
 
-        User user = userAccountCreationService.createUserAccount(request);
-        
-        AdminCompleteRegistrationResponse response = buildInitialResponse(user, request, adminEmail);
-        
-        profileSectionOrchestrator.createAllSections(user.getId(), request, response);
-        
-        profileCompletionCalculator.calculateAndUpdate(user.getId(), response);
-        
-        response.setMessage(buildCompletionMessage(response));
+        // DEFENSIVE: Clear ThreadLocal context BEFORE setting to prevent thread pool
+        // pollution
+        AdminRegistrationContext.clear();
 
-        log.info("Complete user registration finished for user ID: {} with {}% completion",
-                user.getId(), response.getCompletionPercentage());
+        try {
+            // Enable admin registration mode to skip async CompleteProfile updates
+            AdminRegistrationContext.setAdminRegistrationMode(true);
 
-        return response;
+            String adminEmail = adminContextService.getCurrentAdminEmail();
+            log.info("Registration initiated by admin: {}", adminEmail);
+
+            User user = userAccountCreationService.createUserAccount(request);
+            log.info("User account created successfully with ID: {}", user.getId());
+
+            AdminCompleteRegistrationResponse response = buildInitialResponse(user, request, adminEmail);
+
+            profileSectionOrchestrator.createAllSections(user.getId(), request, response);
+            log.info("Profile sections created: {}", response.getCreatedSections());
+
+            profileCompletionCalculator.calculateAndUpdate(user.getId(), response);
+            log.info("Profile completion calculated: {}%", response.getCompletionPercentage());
+
+            response.setMessage(buildCompletionMessage(response));
+
+            log.info("Complete user registration finished for user ID: {} with {}% completion",
+                    user.getId(), response.getCompletionPercentage());
+
+            return response;
+        } catch (Exception e) {
+            log.error("Registration failed - all changes will be rolled back for email: {}",
+                    request.getEmail(), e);
+            throw e; // Re-throw to trigger @Transactional rollback
+        } finally {
+            // CRITICAL: Clear context to prevent thread pool pollution
+            AdminRegistrationContext.clear();
+        }
     }
 
     private AdminCompleteRegistrationResponse buildInitialResponse(User user,
-                                                                    AdminCompleteRegistrationRequest request,
-                                                                    String adminEmail) {
+            AdminCompleteRegistrationRequest request,
+            String adminEmail) {
         return AdminCompleteRegistrationResponse.builder()
                 .userId(user.getId())
                 .email(user.getEmail())

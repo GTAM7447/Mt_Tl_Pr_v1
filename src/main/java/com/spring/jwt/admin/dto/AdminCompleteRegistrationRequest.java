@@ -14,7 +14,8 @@ import lombok.NoArgsConstructor;
 
 /**
  * Comprehensive request DTO for admin-driven user registration.
- * Allows admins to register a user with all profile sections in a single operation.
+ * Allows admins to register a user with all profile sections in a single
+ * operation.
  * All nested sections are optional - admin can provide partial data.
  */
 @Data
@@ -23,20 +24,21 @@ import lombok.NoArgsConstructor;
 @Builder
 @Schema(description = "Complete user registration request for admin operations")
 public class AdminCompleteRegistrationRequest {
-    
+
     @Schema(description = "User email address", example = "user@example.com", required = true)
     @NotBlank(message = "Email is required", groups = AdminValidation.class)
     @Email(message = "Invalid email format", groups = AdminValidation.class)
     private String email;
 
-    @Schema(description = "User password", example = "SecurePass123!", required = true)
+    @Schema(description = "User password (must contain uppercase, lowercase, digit, and special character)", example = "SecurePass123!", required = true)
     @NotBlank(message = "Password is required", groups = AdminValidation.class)
-    @Size(min = 8, message = "Password must be at least 8 characters", groups = AdminValidation.class)
+    @Size(min = 8, max = 100, message = "Password must be between 8 and 100 characters", groups = AdminValidation.class)
+    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$", message = "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character (@$!%*?&)", groups = AdminValidation.class)
     private String password;
 
-    @Schema(description = "User mobile number", example = "9876543210", required = true)
+    @Schema(description = "User mobile number (Indian format starting with 6-9)", example = "9876543210", required = true)
     @NotBlank(message = "Mobile number is required", groups = AdminValidation.class)
-    @Pattern(regexp = "^[0-9]{10}$", message = "Mobile number must be 10 digits", groups = AdminValidation.class)
+    @Pattern(regexp = "^[6-9][0-9]{9}$", message = "Mobile number must be 10 digits starting with 6, 7, 8, or 9", groups = AdminValidation.class)
     private String mobileNumber;
 
     @Schema(description = "User gender", example = "MALE", required = true)
@@ -69,6 +71,7 @@ public class AdminCompleteRegistrationRequest {
     private PartnerPreferencesStepRequest partnerPreferences;
 
     @Schema(description = "Admin notes/comments about this registration", example = "Registered during offline event")
+    @Size(max = 1000, message = "Admin notes cannot exceed 1000 characters", groups = AdminValidation.class)
     private String adminNotes;
 
     @Schema(description = "Skip email verification", example = "true")
@@ -78,4 +81,8 @@ public class AdminCompleteRegistrationRequest {
     @Schema(description = "Auto-activate account", example = "true")
     @Builder.Default
     private Boolean autoActivate = true;
+
+    @Schema(description = "Gender specification (required if gender is OTHER)", example = "Non-binary")
+    @Size(max = 50, message = "Gender specification cannot exceed 50 characters", groups = AdminValidation.class)
+    private String genderSpecification;
 }

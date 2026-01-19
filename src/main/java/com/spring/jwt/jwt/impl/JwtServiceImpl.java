@@ -97,12 +97,10 @@ public class JwtServiceImpl implements JwtService {
         Instant now = Instant.now();
         Instant notBefore = now.plusSeconds(Math.max(0, jwtConfig.getNotBefore()));
 
-        // Extract authorities - ensure they are Strings
         List<String> roles = userDetailsCustom.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
 
-        // Validate authorities are not corrupted
         for (String role : roles) {
             if (role == null || role.contains("�") || role.contains("\u0000")) {
                 throw new IllegalStateException("Corrupted authority detected: " + role);
@@ -111,14 +109,7 @@ public class JwtServiceImpl implements JwtService {
 
         Integer userId = userDetailsCustom.getUserId();
         String firstName = userDetailsCustom.getFirstName();
-        
-        if (log.isDebugEnabled()) {
-            log.debug("Generating access token for user: {}, device: {}", 
-                    userDetailsCustom.getUsername(), 
-                    deviceFingerprint != null ? deviceFingerprint.substring(0, Math.min(8, deviceFingerprint.length())) + "..." : "none");
-        }
 
-        // Build JWT with explicit claim types to prevent corruption
         JwtBuilder jwtBuilder = Jwts.builder()
             .setSubject(userDetailsCustom.getUsername())
             .setIssuer(jwtConfig.getIssuer())
@@ -126,7 +117,7 @@ public class JwtServiceImpl implements JwtService {
             .setId(UUID.randomUUID().toString())
             .claim("firstname", firstName != null ? firstName : "")
             .claim("userId", userId)
-            .claim("authorities", roles)  // Explicitly typed as List<String>
+            .claim("authorities", roles)
             .claim("isEnable", userDetailsCustom.isEnabled());
 
         if (userDetailsCustom.getUserProfileId() != null) {
@@ -143,10 +134,8 @@ public class JwtServiceImpl implements JwtService {
             jwtBuilder.claim(CLAIM_KEY_DEVICE_FINGERPRINT, deviceFingerprint);
         }
 
-        // 7️⃣ Token is IMMUTABLE after this point - never modify
         String token = jwtBuilder.compact();
         
-        // Validate token was generated correctly
         if (token == null || token.split("\\.").length != 3) {
             throw new IllegalStateException("Generated token is malformed");
         }
@@ -168,19 +157,11 @@ public class JwtServiceImpl implements JwtService {
         
         Instant now = Instant.now();
         Instant notBefore = now.plusSeconds(Math.max(0, jwtConfig.getNotBefore()));
-        
-        if (log.isDebugEnabled()) {
-            log.debug("Generating refresh token for user: {}, device: {}", 
-                    userDetailsCustom.getUsername(), 
-                    deviceFingerprint != null ? deviceFingerprint.substring(0, Math.min(8, deviceFingerprint.length())) + "..." : "none");
-        }
 
-        // Extract authorities - ensure they are Strings
         List<String> roles = userDetailsCustom.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
 
-        // Validate authorities are not corrupted
         for (String role : roles) {
             if (role == null || role.contains("�") || role.contains("\u0000")) {
                 throw new IllegalStateException("Corrupted authority detected: " + role);
@@ -192,7 +173,7 @@ public class JwtServiceImpl implements JwtService {
             .setIssuer(jwtConfig.getIssuer())
             .setId(UUID.randomUUID().toString())
             .claim("userId", userDetailsCustom.getUserId())
-            .claim("authorities", roles);  // Explicitly typed as List<String>
+            .claim("authorities", roles);
 
         if (userDetailsCustom.getUserProfileId() != null) {
             jwtBuilder.claim("userProfileId", userDetailsCustom.getUserProfileId());
@@ -208,10 +189,8 @@ public class JwtServiceImpl implements JwtService {
             jwtBuilder.claim(CLAIM_KEY_DEVICE_FINGERPRINT, deviceFingerprint);
         }
 
-        // 7️⃣ Token is IMMUTABLE after this point - never modify
         String token = jwtBuilder.compact();
         
-        // Validate token was generated correctly
         if (token == null || token.split("\\.").length != 3) {
             throw new IllegalStateException("Generated refresh token is malformed");
         }
@@ -303,78 +282,45 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public boolean isValidToken(String token, String deviceFingerprint) {
         try {
-            log.debug("=== TOKEN VALIDATION START ===");
-            log.debug("Device fingerprinting enabled: {}", jwtConfig.isDeviceFingerprintingEnabled());
-            log.debug("Device fingerprint provided: {}", deviceFingerprint != null ? "YES" : "NO");
-            
             if (isBlacklisted(token)) {
-                log.warn("❌ Token validation failed: Token is blacklisted");
                 return false;
             }
             
             final String username = extractUsername(token);
             
             if (StringUtils.isEmpty(username)) {
-                log.warn("❌ Token validation failed: Empty username");
                 return false;
             }
     
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-            
-            if (ObjectUtils.isEmpty(userDetails)) {
-                log.warn("❌ Token validation failed: User not found for username: {}", username);
-                return false;
-            }
-
+            // No DB call - username validation only
             Claims claims = extractAllClaims(token);
             
-            // Log token type
+            // Check token type
             String tokenType = claims.get(CLAIM_KEY_TOKEN_TYPE, String.class);
-            log.debug("Token type: {}", tokenType);
 
             Date nbf = claims.getNotBefore();
             if (nbf != null && nbf.after(new Date())) {
-                log.warn("❌ Token validation failed: Token not yet valid. Current time: {}, Not before: {}",
-                        new Date(), nbf);
                 return false;
             }
             
-            // CRITICAL: Device fingerprint validation with production-safe error handling
+            // Device fingerprint validation
             if (jwtConfig.isDeviceFingerprintingEnabled()) {
                 try {
                     String tokenDeviceFingerprint = claims.get(CLAIM_KEY_DEVICE_FINGERPRINT, String.class);
-                    log.debug("Token has device fingerprint: {}", tokenDeviceFingerprint != null ? "YES" : "NO");
                     
-                    // Only validate if token actually has a fingerprint
                     if (StringUtils.hasText(tokenDeviceFingerprint)) {
-                        // If we can't generate a fingerprint from current request, allow it
-                        // This handles edge cases where headers might be missing (proxies, API clients, etc.)
                         if (!StringUtils.hasText(deviceFingerprint)) {
-                            log.warn("⚠️ Cannot generate device fingerprint from request - allowing request for user: {}", username);
-                            log.debug("✓ Device fingerprint check skipped (cannot generate from request)");
+                            // Cannot generate fingerprint - allow request
+                            log.warn("Cannot generate device fingerprint - allowing request");
                         } else if (!tokenDeviceFingerprint.equals(deviceFingerprint)) {
-                            // Fingerprints don't match - this is a different device/browser
-                            log.warn("❌ Token validation failed: Device fingerprint mismatch for user: {}", username);
-                            log.debug("Expected: {}, Got: {}", 
-                                    tokenDeviceFingerprint.substring(0, Math.min(10, tokenDeviceFingerprint.length())),
-                                    deviceFingerprint.substring(0, Math.min(10, deviceFingerprint.length())));
                             throw new DeviceFingerprintMismatchException(
                                 "Token was generated on a different device or browser. Please login again from this device.");
-                        } else {
-                            log.debug("✓ Device fingerprint matched");
                         }
-                    } else {
-                        // Token doesn't have fingerprint (old token or fingerprinting was disabled when created)
-                        log.debug("✓ Device fingerprint check skipped (token has no fingerprint)");
                     }
                 } catch (DeviceFingerprintMismatchException e) {
-                    // Re-throw device mismatch - this is expected security behavior
                     throw e;
                 } catch (Exception e) {
-                    // PRODUCTION SAFETY: If anything goes wrong with fingerprint validation, allow the request
-                    // This ensures device fingerprinting never breaks legitimate users
-                    log.error("⚠️ Error during device fingerprint validation - allowing request for safety: {}", e.getMessage());
-                    log.debug("✓ Device fingerprint check skipped due to error (fail-safe mode)");
+                    log.error("Error during device fingerprint validation: {}", e.getMessage());
                 }
             }
 
@@ -382,25 +328,18 @@ public class JwtServiceImpl implements JwtService {
                 try {
                     String tokenId = claims.getId();
                     if (StringUtils.hasText(tokenId) && !activeSessionService.isCurrentAccessToken(username, tokenId)) {
-                        log.warn("❌ Token validation failed: Access token is not current for user: {} (single session enforcement enabled)", username);
                         return false;
                     }
-                    log.debug("✓ Single session check passed");
                 } catch (Exception e) {
-                    log.warn("⚠️ Could not verify active session: {}", e.getMessage());
+                    log.warn("Could not verify active session: {}", e.getMessage());
                 }
             }
 
-            log.debug("✅ Token validation successful for user: {}", username);
-            log.debug("=== TOKEN VALIDATION END ===");
             return true;
         } catch (DeviceFingerprintMismatchException e) {
-            // Re-throw device fingerprint exception so SecurityExceptionHandler can handle it
             throw e;
         } catch (Exception e) {
-            log.error("❌ Token validation failed with exception: {}", e.getMessage(), e);
-            log.debug("Token preview: {}", 
-                    token != null && token.length() > 20 ? token.substring(0, 20) + "..." : "null");
+            log.error("Token validation failed: {}", e.getMessage());
             return false;
         }
     }

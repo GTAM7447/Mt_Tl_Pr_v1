@@ -237,25 +237,45 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
     @CacheEvict(value = CacheUtils.CacheNames.COMPLETE_PROFILES, allEntries = true)
     @Async
     public void recalcAndSave(CompleteProfile completeProfile) {
+        if (completeProfile == null || completeProfile.getUser() == null) {
+            log.warn("Cannot recalculate profile: completeProfile or user is null");
+            return;
+        }
+
+        Integer userId = completeProfile.getUser().getId();
+        
         try {
-            log.debug("Recalculating profile completeness for user ID: {}", 
-                    completeProfile.getUser() != null ? completeProfile.getUser().getId() : "unknown");
+            log.debug("Recalculating profile completeness for user ID: {}", userId);
 
-            calculateCompletionMetrics(completeProfile);
+            // Fetch fresh copy from database to avoid stale data
+            CompleteProfile freshProfile = completeProfileRepo.findByUser_Id(userId)
+                    .orElse(null);
+            
+            if (freshProfile == null) {
+                log.warn("CompleteProfile not found for user ID: {} during recalculation", userId);
+                return;
+            }
 
-            calculateStrengthMetrics(completeProfile);
+            calculateCompletionMetrics(freshProfile);
+            calculateStrengthMetrics(freshProfile);
+            determineProfileQuality(freshProfile);
+            updateVerificationStatus(freshProfile);
 
-            determineProfileQuality(completeProfile);
+            completeProfileRepo.save(freshProfile);
 
-            updateVerificationStatus(completeProfile);
+            log.debug("Profile completeness recalculated successfully for user ID: {}", userId);
 
-            completeProfileRepo.save(completeProfile);
-
-            log.debug("Profile completeness recalculated successfully for user ID: {}", 
-                    completeProfile.getUser() != null ? completeProfile.getUser().getId() : "unknown");
-
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // Duplicate key - another thread already created it, ignore
+            log.debug("Duplicate profile entry detected for user ID: {} - ignoring (another thread handled it)", userId);
+        } catch (org.springframework.orm.ObjectOptimisticLockingFailureException e) {
+            // Optimistic locking failure - another thread updated it, ignore
+            log.debug("Optimistic locking conflict for user ID: {} - ignoring (another thread updated it)", userId);
+        } catch (org.hibernate.StaleStateException e) {
+            // Stale state - another thread updated it, ignore
+            log.debug("Stale state detected for user ID: {} - ignoring (another thread updated it)", userId);
         } catch (Exception e) {
-            log.error("Error recalculating profile completeness: {}", e.getMessage(), e);
+            log.error("Error recalculating profile completeness for user ID {}: {}", userId, e.getMessage());
         }
     }
 

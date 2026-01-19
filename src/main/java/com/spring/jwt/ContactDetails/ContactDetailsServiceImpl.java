@@ -416,6 +416,12 @@ public class ContactDetailsServiceImpl implements ContactDetailsService {
      * Asynchronously synchronize CompleteProfile when contact details are created.
      */
     private void synchronizeCompleteProfileAsync(User user, ContactDetails contactDetails) {
+        // Skip async updates during admin registration for performance
+        if (com.spring.jwt.admin.service.AdminRegistrationContext.isAdminRegistration()) {
+            log.debug("Skipping CompleteProfile sync during admin registration for user ID: {}", user.getId());
+            return;
+        }
+        
         try {
             CompleteProfile cp = completeProfileRepo.findByUser_Id(user.getId())
                     .orElseGet(() -> {

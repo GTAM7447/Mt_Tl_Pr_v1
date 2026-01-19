@@ -23,6 +23,21 @@ public interface CompleteProfileRepository extends JpaRepository<CompleteProfile
      * Find complete profile by user ID.
      */
     Optional<CompleteProfile> findByUser_Id(Integer userId);
+    
+    /**
+     * Find complete profile by user ID with all relationships eagerly loaded.
+     * Use this for profile completion calculations to avoid lazy loading issues.
+     */
+    @Query("SELECT cp FROM CompleteProfile cp " +
+           "LEFT JOIN FETCH cp.user u " +
+           "LEFT JOIN FETCH cp.userProfile up " +
+           "LEFT JOIN FETCH cp.horoscopeDetails hd " +
+           "LEFT JOIN FETCH cp.educationAndProfession ep " +
+           "LEFT JOIN FETCH cp.familyBackground fb " +
+           "LEFT JOIN FETCH cp.partnerPreference pp " +
+           "LEFT JOIN FETCH cp.contactDetails cd " +
+           "WHERE cp.user.id = :userId AND cp.deleted = false")
+    Optional<CompleteProfile> findByUserIdWithRelationships(@Param("userId") Integer userId);
 
     /**
      * Check if complete profile exists for user.

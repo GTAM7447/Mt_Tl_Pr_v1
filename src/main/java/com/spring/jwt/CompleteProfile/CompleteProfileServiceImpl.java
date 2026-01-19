@@ -71,7 +71,6 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
             CompleteProfile completeProfile = completeProfileRepo.findByUser_Id(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("Complete profile not found for user ID: " + userId));
 
-            // Return public-safe version of the profile
             return mapper.toPublicResponse(completeProfile);
         } catch (Exception e) {
             log.error("Error fetching public profile for user ID {}: {}", userId, e.getMessage());
@@ -247,7 +246,6 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
         try {
             log.debug("Recalculating profile completeness for user ID: {}", userId);
 
-            // Fetch fresh copy from database to avoid stale data
             CompleteProfile freshProfile = completeProfileRepo.findByUser_Id(userId)
                     .orElse(null);
             
@@ -266,13 +264,10 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
             log.debug("Profile completeness recalculated successfully for user ID: {}", userId);
 
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            // Duplicate key - another thread already created it, ignore
             log.debug("Duplicate profile entry detected for user ID: {} - ignoring (another thread handled it)", userId);
         } catch (org.springframework.orm.ObjectOptimisticLockingFailureException e) {
-            // Optimistic locking failure - another thread updated it, ignore
             log.debug("Optimistic locking conflict for user ID: {} - ignoring (another thread updated it)", userId);
         } catch (org.hibernate.StaleStateException e) {
-            // Stale state - another thread updated it, ignore
             log.debug("Stale state detected for user ID: {} - ignoring (another thread updated it)", userId);
         } catch (Exception e) {
             log.error("Error recalculating profile completeness for user ID {}: {}", userId, e.getMessage());

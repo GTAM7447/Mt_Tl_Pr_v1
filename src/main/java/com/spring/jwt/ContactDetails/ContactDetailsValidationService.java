@@ -108,8 +108,7 @@ public class ContactDetailsValidationService {
      */
     private void validateMobileNumbers(String mobileNumber, String alternateNumber, 
                                      String whatsappNumber, List<String> errors) {
-        
-        // Check for duplicate numbers
+
         if (mobileNumber != null && alternateNumber != null && 
             normalizePhoneNumber(mobileNumber).equals(normalizePhoneNumber(alternateNumber))) {
             errors.add("Mobile number and alternate number cannot be the same");

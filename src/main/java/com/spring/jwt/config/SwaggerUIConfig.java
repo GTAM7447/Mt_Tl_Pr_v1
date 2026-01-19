@@ -40,7 +40,6 @@ public class SwaggerUIConfig {
         
         operations.forEach((method, operation) -> {
             if (operation != null) {
-                // Add admin prefix to summary if not already present
                 String summary = operation.getSummary();
                 if (summary != null && !summary.contains("(Admin)")) {
                     operation.setSummary(summary + " (Admin)");

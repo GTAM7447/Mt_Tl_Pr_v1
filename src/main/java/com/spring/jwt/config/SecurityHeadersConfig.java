@@ -38,15 +38,12 @@ public class SecurityHeadersConfig {
             @Override
             protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                            FilterChain filterChain) throws ServletException, IOException {
-                // Generate a new nonce for each request
                 byte[] nonceBytes = new byte[16];
                 RANDOM.nextBytes(nonceBytes);
                 String nonce = Base64.getEncoder().encodeToString(nonceBytes);
-                
-                // Store the nonce as a request attribute for templates
+
                 request.setAttribute(CSP_NONCE_ATTRIBUTE, nonce);
-                
-                // Add the CSP header with the nonce
+
                 String cspHeader = getContentSecurityPolicy(nonce);
                 response.setHeader("Content-Security-Policy", cspHeader);
                 

@@ -18,8 +18,7 @@ import java.security.Security;
 @EnableAspectJAutoProxy
 @EnableMethodSecurity(
     securedEnabled = true,
-    jsr250Enabled = true,
-    prePostEnabled = true
+    jsr250Enabled = true
 )
 @OpenAPIDefinition(
 		info = @Info(
@@ -35,9 +34,11 @@ import java.security.Security;
 				)
 		)
 )
-public class JwtWithSpringSecurityApplication {
+public class JwtWithSpringSecurityApplication
+{
 
-	public static void main(String[] args) {
+	public static void main(String[] args)
+    {
 		Security.addProvider(new BouncyCastleProvider());
 
 		SpringApplication.run(JwtWithSpringSecurityApplication.class, args);

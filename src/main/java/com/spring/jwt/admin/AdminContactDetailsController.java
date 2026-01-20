@@ -96,34 +96,99 @@ public class AdminContactDetailsController {
 
     @Operation(
         summary = "Get all contact details (Admin)",
-        description = "Admin can retrieve all users' contact details with pagination"
+        description = "Admin can retrieve all users' contact details with pagination and sorting. " +
+                     "Valid sort fields: contactDetailsId, alternateEmail, alternatePhone, createdAt, updatedAt"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Contact details retrieved successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
         @ApiResponse(responseCode = "403", description = "Access denied - Admin role required")
     })
     @GetMapping("/all")
     public ResponseEntity<List<ContactDetailsResponse>> getAllContactDetails(
-            @Parameter(description = "Page number (0-based)")
+            @Parameter(
+                description = "Page number (0-based)",
+                example = "0"
+            )
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page number cannot be negative") int page,
-            @Parameter(description = "Page size")
-            @RequestParam(defaultValue = "10") @Min(value = 1, message = "Page size must be positive") int size,
-            @Parameter(description = "Sort field")
-            @RequestParam(defaultValue = "contactDetailsId") String sortBy,
-            @Parameter(description = "Sort direction (asc/desc)")
-            @RequestParam(defaultValue = "asc") String sortDir) {
+            
+            @Parameter(
+                description = "Number of records per page (1-100)",
+                example = "10"
+            )
+            @RequestParam(defaultValue = "10") @Min(value = 1, message = "Page size must be positive") @jakarta.validation.constraints.Max(value = 100, message = "Page size cannot exceed 100") int size,
+            
+            @Parameter(
+                description = "Field to sort by. Valid values: contactDetailsId, alternateEmail, alternatePhone, createdAt, updatedAt",
+                example = "createdAt",
+                schema = @io.swagger.v3.oas.annotations.media.Schema(
+                    allowableValues = {"contactDetailsId", "alternateEmail", "alternatePhone", "createdAt", "updatedAt"}
+                )
+            )
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            
+            @Parameter(
+                description = "Sort direction",
+                example = "desc",
+                schema = @io.swagger.v3.oas.annotations.media.Schema(allowableValues = {"asc", "desc"})
+            )
+            @RequestParam(defaultValue = "desc") String sortDir) {
         
         log.info("Admin retrieving all contact details - page: {}, size: {}, sortBy: {}, sortDir: {}", 
                 page, size, sortBy, sortDir);
 
-        org.springframework.data.domain.Sort sort = sortDir.equalsIgnoreCase("desc") 
-            ? org.springframework.data.domain.Sort.by(sortBy).descending()
-            : org.springframework.data.domain.Sort.by(sortBy).ascending();
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, sort);
+        // Validate and sanitize sortBy field
+        String validatedSortBy = validateAndSanitizeContactDetailsSortField(sortBy);
         
-        org.springframework.data.domain.Page<ContactDetailsResponse> contactPage = 
-            contactDetailsService.getAllContactDetails(pageable);
-        return ResponseEntity.ok(contactPage.getContent());
+        // Validate sort direction
+        String validatedSortDir = sortDir != null && sortDir.equalsIgnoreCase("asc") ? "asc" : "desc";
+        
+        try {
+            org.springframework.data.domain.Sort sort = validatedSortDir.equalsIgnoreCase("desc") 
+                ? org.springframework.data.domain.Sort.by(validatedSortBy).descending()
+                : org.springframework.data.domain.Sort.by(validatedSortBy).ascending();
+            org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, sort);
+            
+            org.springframework.data.domain.Page<ContactDetailsResponse> contactPage = 
+                contactDetailsService.getAllContactDetails(pageable);
+            return ResponseEntity.ok(contactPage.getContent());
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid sort parameters: sortBy={}, sortDir={}", sortBy, sortDir, e);
+            throw new IllegalArgumentException("Invalid sort parameters. Use valid field names and direction (asc/desc)");
+        }
+    }
+    
+    /**
+     * Validate and sanitize sort field for ContactDetails entity.
+     * Only allows whitelisted fields that exist in ContactDetails.
+     */
+    private String validateAndSanitizeContactDetailsSortField(String sortBy) {
+        if (sortBy == null || sortBy.trim().isEmpty()) {
+            return "createdAt";
+        }
+        
+        // Whitelist of valid sort fields for ContactDetails
+        java.util.Set<String> validFields = java.util.Set.of(
+            "contactDetailsId", "alternateEmail", "alternatePhone", "createdAt", "updatedAt"
+        );
+        
+        String sanitized = sortBy.trim();
+        
+        // Check if it's a valid field (case-sensitive for entity fields)
+        if (validFields.contains(sanitized)) {
+            return sanitized;
+        }
+        
+        // Try case-insensitive match
+        for (String validField : validFields) {
+            if (validField.equalsIgnoreCase(sanitized)) {
+                return validField;
+            }
+        }
+        
+        // Default to createdAt if invalid
+        log.warn("Invalid sort field requested: {}. Using default: createdAt", sortBy);
+        return "createdAt";
     }
 
     @Operation(

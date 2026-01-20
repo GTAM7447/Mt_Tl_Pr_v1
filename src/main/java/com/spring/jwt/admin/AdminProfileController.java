@@ -8,11 +8,13 @@ import com.spring.jwt.profile.ProfileService;
 import com.spring.jwt.dto.ResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -101,30 +103,100 @@ public class AdminProfileController {
 
     @Operation(
         summary = "Get all profiles (Admin)",
-        description = "Admin can retrieve all user profiles with pagination"
+        description = "Admin can retrieve all user profiles with pagination and sorting. " +
+                     "Valid sort fields: userProfileId, firstName, lastName, age, maritalStatus, religion, " +
+                     "caste, district, state, country, status, createdAt, updatedAt"
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Profiles retrieved successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
         @ApiResponse(responseCode = "403", description = "Access denied - Admin role required")
     })
     @GetMapping("/all")
     public ResponseEntity<Page<ProfileListView>> getAllProfiles(
-            @Parameter(description = "Page number (0-based)")
+            @Parameter(
+                description = "Page number (0-based)",
+                example = "0"
+            )
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page number cannot be negative") int page,
-            @Parameter(description = "Page size")
-            @RequestParam(defaultValue = "10") @Min(value = 1, message = "Page size must be positive") int size,
-            @Parameter(description = "Sort field")
-            @RequestParam(defaultValue = "profileId") String sortBy,
-            @Parameter(description = "Sort direction (asc/desc)")
-            @RequestParam(defaultValue = "asc") String sortDir) {
+            
+            @Parameter(
+                description = "Number of records per page (1-100)",
+                example = "10"
+            )
+            @RequestParam(defaultValue = "10") @Min(value = 1, message = "Page size must be positive") @Max(value = 100, message = "Page size cannot exceed 100") int size,
+            
+            @Parameter(
+                description = "Field to sort by. Valid values: userProfileId, firstName, lastName, age, maritalStatus, " +
+                             "religion, caste, district, state, country, status, createdAt, updatedAt",
+                example = "updatedAt",
+                schema = @Schema(
+                    allowableValues = {"userProfileId", "firstName", "lastName", "age", "maritalStatus", 
+                                      "religion", "caste", "district", "state", "country", "status", "createdAt", "updatedAt"}
+                )
+            )
+            @RequestParam(defaultValue = "updatedAt") String sortBy,
+            
+            @Parameter(
+                description = "Sort direction",
+                example = "desc",
+                schema = @Schema(allowableValues = {"asc", "desc"})
+            )
+            @RequestParam(defaultValue = "desc") String sortDir) {
         
         log.info("Admin retrieving all profiles - page: {}, size: {}, sortBy: {}, sortDir: {}", 
                 page, size, sortBy, sortDir);
         
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
-        Pageable pageable = PageRequest.of(page, size, sort);
-        Page<ProfileListView> response = profileService.getAllProfiles(pageable);
-        return ResponseEntity.ok(response);
+        // Validate and sanitize sortBy field
+        String validatedSortBy = validateAndSanitizeProfileSortField(sortBy);
+        
+        // Validate sort direction
+        String validatedSortDir = sortDir != null && sortDir.equalsIgnoreCase("asc") ? "asc" : "desc";
+        
+        try {
+            Sort sort = Sort.by(Sort.Direction.fromString(validatedSortDir), validatedSortBy);
+            Pageable pageable = PageRequest.of(page, size, sort);
+            Page<ProfileListView> response = profileService.getAllProfiles(pageable);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid sort parameters: sortBy={}, sortDir={}", sortBy, sortDir, e);
+            throw new IllegalArgumentException("Invalid sort parameters. Use valid field names and direction (asc/desc)");
+        }
+    }
+    
+    /**
+     * Validate and sanitize sort field for UserProfile entity.
+     * Only allows whitelisted fields that exist in UserProfile.
+     */
+    private String validateAndSanitizeProfileSortField(String sortBy) {
+        if (sortBy == null || sortBy.trim().isEmpty()) {
+            return "updatedAt";
+        }
+        
+        // Whitelist of valid sort fields for UserProfile
+        java.util.Set<String> validFields = java.util.Set.of(
+            "userProfileId", "firstName", "lastName", "age", "maritalStatus",
+            "religion", "caste", "district", "state", "country", "status",
+            "createdAt", "updatedAt"
+        );
+        
+        String sanitized = sortBy.trim();
+        
+        // Check if it's a valid field (case-sensitive for entity fields)
+        if (validFields.contains(sanitized)) {
+            return sanitized;
+        }
+        
+        // Try case-insensitive match
+        for (String validField : validFields) {
+            if (validField.equalsIgnoreCase(sanitized)) {
+                return validField;
+            }
+        }
+        
+        // Default to updatedAt if invalid
+        log.warn("Invalid sort field requested: {}. Using default: updatedAt", sortBy);
+        return "updatedAt";
     }
 
     @Operation(

@@ -465,7 +465,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserProfileDTO getUserProfileById(Integer id) {
-        User user = userRepository.findById(id)
+        User user = userRepository.findByIdWithRoles(id)
                 .orElseThrow(() -> new UserNotFoundExceptions("User not found with id: " + id));
 
         return buildUserProfileDTO(user);

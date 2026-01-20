@@ -90,23 +90,56 @@ public class AdminCompleteProfileController {
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page number cannot be negative") int page,
             @Parameter(description = "Page size")
             @RequestParam(defaultValue = "10") @Min(value = 1, message = "Page size must be positive") int size,
-            @Parameter(description = "Sort field")
-            @RequestParam(defaultValue = "userId") String sortBy,
+            @Parameter(description = "Sort field (userId, completionPercentage, updatedAt, etc.)")
+            @RequestParam(defaultValue = "updatedAt") String sortBy,
             @Parameter(description = "Sort direction (asc/desc)")
-            @RequestParam(defaultValue = "asc") String sortDir,
+            @RequestParam(defaultValue = "desc") String sortDir,
             @Parameter(description = "Filter by completion status")
             @RequestParam(required = false) Boolean isComplete) {
         
         log.info("Admin retrieving all complete profiles - page: {}, size: {}, sortBy: {}, sortDir: {}", 
                 page, size, sortBy, sortDir);
 
-        Sort sort = sortDir.equalsIgnoreCase("desc")
-            ? Sort.by(sortBy).descending()
-            : Sort.by(sortBy).ascending();
+        // Validate and sanitize sortBy to prevent SQL injection and invalid field names
+        String validatedSortBy = validateAndSanitizeSortField(sortBy);
+        
+        // Validate sort direction
+        String validatedSortDir = sortDir != null && sortDir.equalsIgnoreCase("asc") ? "asc" : "desc";
+        
+        Sort sort = validatedSortDir.equalsIgnoreCase("desc")
+            ? Sort.by(validatedSortBy).descending()
+            : Sort.by(validatedSortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
         
         Page<CompleteProfileResponse> profilePage = completeProfileService.getAllCompleteProfiles(pageable);
         return ResponseEntity.ok(profilePage.getContent());
+    }
+    
+    /**
+     * Validate and sanitize sort field to prevent invalid field names.
+     * Only allows whitelisted fields that exist in CompleteProfile entity.
+     */
+    private String validateAndSanitizeSortField(String sortBy) {
+        if (sortBy == null || sortBy.trim().isEmpty()) {
+            return "updatedAt";
+        }
+        
+        // Whitelist of valid sort fields
+        java.util.Set<String> validFields = java.util.Set.of(
+            "completeProfileId", "userId", "completionPercentage", "completenessScore",
+            "profileQuality", "verificationStatus", "profileCompleted", "createdAt", "updatedAt"
+        );
+        
+        String sanitized = sortBy.trim().toLowerCase();
+        
+        // Check if it's a valid field
+        if (validFields.contains(sanitized)) {
+            return sanitized;
+        }
+        
+        // Default to updatedAt if invalid
+        log.warn("Invalid sort field requested: {}. Using default: updatedAt", sortBy);
+        return "updatedAt";
     }
 
     @Operation(

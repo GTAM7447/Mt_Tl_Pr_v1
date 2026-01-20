@@ -7,6 +7,7 @@ import com.spring.jwt.CompleteProfile.CompleteProfileService;
 import com.spring.jwt.dto.ResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -78,23 +79,47 @@ public class AdminCompleteProfileController {
 
     @Operation(
         summary = "Get all complete profiles (Admin)",
-        description = "Admin can retrieve all users' complete profiles with pagination"
+        description = "Admin can retrieve all complete profiles with pagination, sorting, and filtering. " +
+                     "Valid sort fields: completeProfileId, userId, completionPercentage, completenessScore, " +
+                     "profileQuality, verificationStatus, profileCompleted, createdAt, updatedAt"
     )
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Complete profiles retrieved successfully"),
-        @ApiResponse(responseCode = "403", description = "Access denied - Admin role required")
-    })
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "Complete profiles retrieved successfully"), @ApiResponse(responseCode = "403", description = "Access denied - Admin role required"), @ApiResponse(responseCode = "200", description = "Successfully retrieved complete profiles"), @ApiResponse(responseCode = "400", description = "Invalid request parameters"), @ApiResponse(responseCode = "403", description = "Access denied - Admin role required")})
     @GetMapping("/all")
     public ResponseEntity<List<CompleteProfileResponse>> getAllCompleteProfiles(
-            @Parameter(description = "Page number (0-based)")
+            @Parameter(
+                description = "Page number (0-based)",
+                example = "0"
+            )
             @RequestParam(defaultValue = "0") @Min(value = 0, message = "Page number cannot be negative") int page,
-            @Parameter(description = "Page size")
+            
+            @Parameter(
+                description = "Number of records per page",
+                example = "10"
+            )
             @RequestParam(defaultValue = "10") @Min(value = 1, message = "Page size must be positive") int size,
-            @Parameter(description = "Sort field (userId, completionPercentage, updatedAt, etc.)")
+            
+            @Parameter(
+                description = "Field to sort by. Valid values: completeProfileId, userId, completionPercentage, " +
+                             "completenessScore, profileQuality, verificationStatus, profileCompleted, createdAt, updatedAt",
+                example = "updatedAt",
+                schema = @Schema(
+                    allowableValues = {"completeProfileId", "userId", "completionPercentage", "completenessScore", 
+                                      "profileQuality", "verificationStatus", "profileCompleted", "createdAt", "updatedAt"}
+                )
+            )
             @RequestParam(defaultValue = "updatedAt") String sortBy,
-            @Parameter(description = "Sort direction (asc/desc)")
+            
+            @Parameter(
+                description = "Sort direction",
+                example = "desc",
+                schema = @Schema(allowableValues = {"asc", "desc"})
+            )
             @RequestParam(defaultValue = "desc") String sortDir,
-            @Parameter(description = "Filter by completion status")
+            
+            @Parameter(
+                description = "Filter by profile completion status (true for complete profiles only, false for incomplete, null for all)",
+                example = "true"
+            )
             @RequestParam(required = false) Boolean isComplete) {
         
         log.info("Admin retrieving all complete profiles - page: {}, size: {}, sortBy: {}, sortDir: {}", 

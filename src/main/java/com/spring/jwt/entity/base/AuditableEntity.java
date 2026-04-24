@@ -12,10 +12,12 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @MappedSuperclass
+@Entity
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
-public abstract class AuditableEntity {
+public abstract class AuditableEntity
+{
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -47,18 +49,23 @@ public abstract class AuditableEntity {
     private Integer deletedBy;
 
     @PrePersist
-    protected void onCreate() {
-        if (this.deleted == null) {
+    protected void onCreate()
+    {
+        if (this.deleted == null)
+        {
             this.deleted = false;
         }
-        if (this.version == null) {
+        if (this.version == null)
+        {
             this.version = 0;
         }
     }
 
     @PreUpdate
-    protected void onUpdate() {
-        if (this.deleted && this.deletedAt == null) {
+    protected void onUpdate()
+    {
+        if (this.deleted && this.deletedAt == null)
+        {
             this.deletedAt = LocalDateTime.now();
         }
     }

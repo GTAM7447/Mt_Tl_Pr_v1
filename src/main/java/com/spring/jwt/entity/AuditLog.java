@@ -21,8 +21,7 @@ public class AuditLog {
     private Long id;
 
     @Column(name = "user_id")
-    private String userId; // String to support both authenticated numeric IDs and temporary session/email
-                           // identifiers
+    private String userId;
 
     @Column(name = "action", nullable = false)
     private String action;

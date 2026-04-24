@@ -16,9 +16,11 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "user_profile", uniqueConstraints = {
+@Table(name = "user_profile", uniqueConstraints =
+        {
         @UniqueConstraint(name = "uk_user_profile_user_id", columnNames = "user_id")
-}, indexes = {
+}, indexes =
+        {
         @Index(name = "idx_profile_gender_status", columnList = "gender, status"),
         @Index(name = "idx_profile_religion_caste", columnList = "religion, caste"),
         @Index(name = "idx_profile_district", columnList = "district"),
@@ -26,7 +28,8 @@ import java.time.LocalDateTime;
 })
 @SQLDelete(sql = "UPDATE user_profile SET deleted = true, updated_at = CURRENT_TIMESTAMP WHERE user_profile_id = ? AND version = ?")
 @Where(clause = "deleted = false")
-public class UserProfile {
+public class UserProfile
+{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,7 +40,6 @@ public class UserProfile {
     @Column(name = "version", nullable = false)
     private Integer version = 0;
 
-    // Basic Info
     @Column(length = 45, nullable = false)
     private String firstName;
 
@@ -71,10 +73,6 @@ public class UserProfile {
     @Column(nullable = false)
     private Integer pinCode;
 
-    // Note: mobileNumber and email removed - these are stored in User entity to
-    // avoid duplication
-
-    // Personal Details
     @Column(length = 45, nullable = false)
     private String religion;
 
@@ -117,7 +115,6 @@ public class UserProfile {
     @Column(length = 45, nullable = false)
     private String currentCity;
 
-    // Audit Fields
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -133,7 +130,6 @@ public class UserProfile {
     @Column(name = "deleted", nullable = false)
     private Boolean deleted = false;
 
-    // Relationship
     @OneToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -149,7 +145,8 @@ public class UserProfile {
     }
 
     @PreUpdate
-    protected void onUpdate() {
+    protected void onUpdate()
+    {
         this.updatedAt = LocalDateTime.now();
     }
 }

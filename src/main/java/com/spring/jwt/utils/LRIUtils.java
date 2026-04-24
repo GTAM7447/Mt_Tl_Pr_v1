@@ -14,7 +14,8 @@ public class LRIUtils {
 
     private final RoleRepository roleRepository;
 
-    public LRIUtils(RoleRepository roleRepository) {
+    public LRIUtils(RoleRepository roleRepository)
+    {
         this.roleRepository = roleRepository;
     }
 

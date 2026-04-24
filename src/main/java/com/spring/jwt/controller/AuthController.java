@@ -2,6 +2,7 @@ package com.spring.jwt.controller;
 
 import com.spring.jwt.aspect.Loggable;
 import com.spring.jwt.jwt.JwtConfig;
+import com.spring.jwt.service.LogoutService;
 import com.spring.jwt.utils.BaseResponseDTO;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,17 +30,61 @@ import java.util.stream.Collectors;
 public class AuthController {
 
     private final JwtConfig jwtConfig;
+    private final LogoutService logoutService;
 
     private static final String REFRESH_TOKEN_COOKIE_NAME = "refresh_token";
 
     /**
-     * Logout endpoint that clears the refresh token cookie and invalidates the
-     * session
+     * Logout endpoint that clears the refresh token cookie and invalidates the session.
+     * Industry standard implementation:
+     * 1. Extract user info BEFORE clearing context (or from token directly if context is empty)
+     * 2. Blacklist tokens to prevent reuse
+     * 3. Invalidate active session
+     * 4. Clear refresh token cookie
+     * 5. Clear security context
      */
     @PostMapping("/logout")
     @Loggable(action = "LOGOUT")
-    public ResponseEntity<BaseResponseDTO> logout(HttpServletRequest request, HttpServletResponse response) {
-        log.info("Processing logout request");
+    public ResponseEntity<BaseResponseDTO> logout(HttpServletRequest request, HttpServletResponse response)
+    {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = null;
+        
+        if (authentication != null && authentication.isAuthenticated()
+                && !"anonymousUser".equals(authentication.getPrincipal()))
+        {
+            username = authentication.getName();
+            log.info("Processing logout request for user: {}", username);
+        } else {
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer "))
+            {
+                try
+                {
+                    String token = authHeader.substring(7);
+                    username = logoutService.extractUsernameFromToken(token);
+                    if (username != null)
+                    {
+                        log.info("Processing logout request for user (from token): {}", username);
+                    } else
+                    {
+                        log.info("Processing logout request for anonymous user");
+                    }
+                } catch (Exception e)
+                {
+                    log.warn("Could not extract username from token: {}", e.getMessage());
+                    log.info("Processing logout request for anonymous user");
+                }
+            } else
+            {
+                log.info("Processing logout request for anonymous user");
+            }
+        }
+
+        if (username != null)
+        {
+            logoutService.performLogout(request, username);
+        }
 
         Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, "");
         cookie.setMaxAge(0);
@@ -60,11 +106,13 @@ public class AuthController {
      * Test endpoint to check cookies in the request
      */
     @GetMapping("/check-cookies")
-    public ResponseEntity<Map<String, Object>> checkCookies(HttpServletRequest request) {
+    public ResponseEntity<Map<String, Object>> checkCookies(HttpServletRequest request)
+    {
         Map<String, Object> response = new HashMap<>();
 
         Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
+        if (cookies != null)
+        {
             response.put("cookieCount", cookies.length);
 
             Map<String, String> cookieDetails = Arrays.stream(cookies)
@@ -84,7 +132,8 @@ public class AuthController {
                     .anyMatch(cookie -> REFRESH_TOKEN_COOKIE_NAME.equals(cookie.getName()));
 
             response.put("hasRefreshToken", hasRefreshToken);
-        } else {
+        } else
+        {
             response.put("cookieCount", 0);
             response.put("cookies", Map.of());
             response.put("hasRefreshToken", false);

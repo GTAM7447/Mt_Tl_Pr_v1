@@ -5,14 +5,12 @@ import com.spring.jwt.ExpressInterest.dto.request.ExpressInterestUpdateRequest;
 import com.spring.jwt.ExpressInterest.repository.ExpressInterestRepository;
 import com.spring.jwt.entity.User;
 import com.spring.jwt.repository.UserRepository;
-import com.spring.jwt.Subscription.SubscriptionService;
 import com.spring.jwt.CompleteProfile.CompleteProfileService;
 import com.spring.jwt.CompleteProfile.dto.CompleteProfileResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

@@ -146,11 +146,9 @@ public class AdminProfileController {
         
         log.info("Admin retrieving all profiles - page: {}, size: {}, sortBy: {}, sortDir: {}", 
                 page, size, sortBy, sortDir);
-        
-        // Validate and sanitize sortBy field
+
         String validatedSortBy = validateAndSanitizeProfileSortField(sortBy);
-        
-        // Validate sort direction
+
         String validatedSortDir = sortDir != null && sortDir.equalsIgnoreCase("asc") ? "asc" : "desc";
         
         try {
@@ -172,8 +170,7 @@ public class AdminProfileController {
         if (sortBy == null || sortBy.trim().isEmpty()) {
             return "updatedAt";
         }
-        
-        // Whitelist of valid sort fields for UserProfile
+
         java.util.Set<String> validFields = java.util.Set.of(
             "userProfileId", "firstName", "lastName", "age", "maritalStatus",
             "religion", "caste", "district", "state", "country", "status",
@@ -182,19 +179,16 @@ public class AdminProfileController {
         
         String sanitized = sortBy.trim();
         
-        // Check if it's a valid field (case-sensitive for entity fields)
         if (validFields.contains(sanitized)) {
             return sanitized;
         }
-        
-        // Try case-insensitive match
+
         for (String validField : validFields) {
             if (validField.equalsIgnoreCase(sanitized)) {
                 return validField;
             }
         }
-        
-        // Default to updatedAt if invalid
+
         log.warn("Invalid sort field requested: {}. Using default: updatedAt", sortBy);
         return "updatedAt";
     }

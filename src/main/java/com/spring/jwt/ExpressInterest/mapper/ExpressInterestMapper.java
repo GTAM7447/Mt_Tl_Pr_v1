@@ -260,7 +260,11 @@ public class ExpressInterestMapper {
             stats.setResponseRate(0.0);
         }
 
-        stats.setRemainingToday(Math.max(0, stats.getDailyLimit() - stats.getSentToday().intValue()));
+        if (stats.getDailyLimit() != null && stats.getSentToday() != null) {
+            stats.setRemainingToday(Math.max(0, stats.getDailyLimit() - stats.getSentToday().intValue()));
+        } else {
+            stats.setRemainingToday(0);
+        }
 
         return stats;
     }

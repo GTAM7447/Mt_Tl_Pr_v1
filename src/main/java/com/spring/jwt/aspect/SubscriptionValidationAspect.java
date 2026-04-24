@@ -1,11 +1,11 @@
 package com.spring.jwt.aspect;
 
 import com.spring.jwt.entity.User;
-import com.spring.jwt.entity.UserCredit;
+import com.spring.jwt.subscription.entity.UserSubscription;
+import com.spring.jwt.subscription.repository.UserSubscriptionRepository;
 import com.spring.jwt.exception.SubscriptionRequiredException;
 import com.spring.jwt.exception.UserNotFoundExceptions;
 import com.spring.jwt.repository.UserRepository;
-import com.spring.jwt.UserCredit.UserCreditRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,9 +16,16 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
+/**
+ * Aspect for validating subscription requirements.
+ * Intercepts methods annotated with @RequiresSubscription.
+ * 
+ * @author Matrimony Platform
+ * @version 1.0
+ */
 @Aspect
 @Component
 @RequiredArgsConstructor
@@ -26,7 +33,7 @@ import java.util.Optional;
 public class SubscriptionValidationAspect {
 
     private final UserRepository userRepository;
-    private final UserCreditRepository userCreditRepository;
+    private final UserSubscriptionRepository userSubscriptionRepository;
 
     @Before("@annotation(com.spring.jwt.aspect.RequiresSubscription)")
     public void validateSubscription(JoinPoint joinPoint) {
@@ -74,27 +81,33 @@ public class SubscriptionValidationAspect {
     }
 
     private boolean hasActiveSubscription(Integer userId) {
-        Optional<UserCredit> userCreditOpt = userCreditRepository.findByUserId(userId);
+        LocalDateTime now = LocalDateTime.now();
+        Optional<UserSubscription> subscriptionOpt = userSubscriptionRepository
+                .findActiveSubscriptionByUserId(userId, now);
 
-        if (userCreditOpt.isEmpty()) {
-            log.debug("No user credit found for userId: {}", userId);
+        if (subscriptionOpt.isEmpty()) {
+            log.debug("No active subscription found for userId: {}", userId);
             return false;
         }
 
-        UserCredit userCredit = userCreditOpt.get();
-        LocalDate today = LocalDate.now();
+        UserSubscription subscription = subscriptionOpt.get();
+
+        if (subscription.getSubscriptionStatus() != UserSubscription.SubscriptionStatus.ACTIVE) {
+            log.debug("User {} subscription status is: {}", userId, subscription.getSubscriptionStatus());
+            return false;
+        }
         
-        if (userCredit.getEndDate() == null) {
-            log.debug("User {} has no end date set for credits", userId);
+        if (subscription.getEndDate() == null) {
+            log.debug("User {} has no end date set for subscription", userId);
             return false;
         }
         
-        if (userCredit.getEndDate().isBefore(today)) {
-            log.debug("User {} subscription expired on {}", userId, userCredit.getEndDate());
+        if (subscription.getEndDate().isBefore(now)) {
+            log.debug("User {} subscription expired on {}", userId, subscription.getEndDate());
             return false;
         }
 
-        log.debug("User {} has active subscription until {}", userId, userCredit.getEndDate());
+        log.debug("User {} has active subscription until {}", userId, subscription.getEndDate());
         return true;
     }
 

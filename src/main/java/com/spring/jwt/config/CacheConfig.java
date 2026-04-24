@@ -65,7 +65,11 @@ public class CacheConfig implements CachingConfigurer {
             "userCredits",
             "applicationSettings",
             "lookupData",
-            "systemConfig"
+            "systemConfig",
+            // Subscription Module Caches
+            "userSubscriptions",
+            "subscriptionPlans",
+            "profileViews"
         ));
         cacheManager.setAllowNullValues(false);
         

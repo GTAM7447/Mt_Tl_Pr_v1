@@ -40,7 +40,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @EnableScheduling
 @EnableMethodSecurity(securedEnabled = true, jsr250Enabled = true, prePostEnabled = true)
 @Slf4j
-public class AppConfig {
+public class AppConfig
+{
 
         @Autowired
         private UserRepository userRepository;
@@ -80,13 +81,15 @@ public class AppConfig {
         private List<String> allowedOrigins;
 
         @Bean
-        public BCryptPasswordEncoder passwordEncoder() {
+        public BCryptPasswordEncoder passwordEncoder()
+        {
 
                 return new BCryptPasswordEncoder(10);
         }
 
         @Bean
-        public UserDetailsServiceCustom userDetailsService() {
+        public UserDetailsServiceCustom userDetailsService()
+        {
                 return new UserDetailsServiceCustom(userRepository);
         }
 
@@ -96,13 +99,15 @@ public class AppConfig {
                         JwtConfig jwtConfig,
                         JwtService jwtService,
                         UserDetailsServiceCustom userDetailsService,
-                        com.spring.jwt.jwt.ActiveSessionService activeSessionService) {
+                        com.spring.jwt.jwt.ActiveSessionService activeSessionService)
+        {
                 return new JwtRefreshTokenFilter(authenticationManager, jwtConfig, jwtService, userDetailsService,
                                 activeSessionService);
         }
 
         @Bean
-        public ForwardedHeaderFilter forwardedHeaderFilter() {
+        public ForwardedHeaderFilter forwardedHeaderFilter()
+        {
                 return new ForwardedHeaderFilter();
         }
 
@@ -146,6 +151,7 @@ public class AppConfig {
                                 .requestMatchers(jwtConfig.getRefreshUrl()).permitAll()
 
                                 .requestMatchers("/api/v1/users/register").permitAll()
+                                .requestMatchers("/api/v1/auth/**").permitAll()
                                 .requestMatchers("/api/v1/users/password/**").permitAll()
                                 .requestMatchers("/api/users/**").permitAll()
                                 .requestMatchers("/api/v1/profiles/public/**").permitAll()
@@ -217,15 +223,19 @@ public class AppConfig {
         @Bean
         public SecurityExceptionHandler securityExceptionHandler(
                         @org.springframework.beans.factory.annotation.Qualifier("requestMappingHandlerMapping")
-                        org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping handlerMapping) {
+                        org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping handlerMapping)
+        {
                 return new SecurityExceptionHandler(objectMapper, handlerMapping);
         }
 
         @Bean
-        public CorsConfigurationSource corsConfigurationSource() {
-                return new CorsConfigurationSource() {
+        public CorsConfigurationSource corsConfigurationSource()
+        {
+                return new CorsConfigurationSource()
+                {
                         @Override
-                        public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
+                        public CorsConfiguration getCorsConfiguration(HttpServletRequest request)
+                        {
                                 CorsConfiguration config = new CorsConfiguration();
                                 config.setAllowedOrigins(allowedOrigins);
                                 config.setAllowedMethods(Arrays.asList("GET", "PATCH", "POST", "PUT", "DELETE",
@@ -253,7 +263,8 @@ public class AppConfig {
         }
 
         @Bean
-        public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+        public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception
+        {
                 AuthenticationManagerBuilder builder = http.getSharedObject(AuthenticationManagerBuilder.class);
                 builder.userDetailsService(userDetailsService())
                                 .passwordEncoder(passwordEncoder());

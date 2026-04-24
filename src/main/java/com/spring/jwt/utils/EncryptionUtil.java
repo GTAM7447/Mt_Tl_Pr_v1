@@ -24,10 +24,12 @@ public class EncryptionUtil {
 
         this.primaryKey = normalizeKey(primaryKey);
 
-        if (legacyKeysStr != null && !legacyKeysStr.isEmpty()) {
+        if (legacyKeysStr != null && !legacyKeysStr.isEmpty())
+        {
             String[] keys = legacyKeysStr.split(",");
             for (String key : keys) {
-                if (key != null && !key.trim().isEmpty()) {
+                if (key != null && !key.trim().isEmpty())
+                {
                     legacyKeys.add(normalizeKey(key.trim()));
                 }
             }
@@ -38,16 +40,20 @@ public class EncryptionUtil {
         legacyKeys.add(normalizeKey("fieldEncryptionKey123"));
     }
     
-    private String normalizeKey(String key) {
-        if (key.length() < 32) {
+    private String normalizeKey(String key)
+    {
+        if (key.length() < 32)
+        {
             return String.format("%-32s", key).replace(' ', '0');
-        } else if (key.length() > 32) {
+        } else if (key.length() > 32)
+        {
             return key.substring(0, 32);
         }
         return key;
     }
 
-    public String encrypt(String data) {
+    public String encrypt(String data)
+    {
         if (data == null || data.isEmpty()) {
             return data;
         }
@@ -56,34 +62,43 @@ public class EncryptionUtil {
             return data;
         }
         
-        try {
+        try
+        {
             SecretKeySpec secretKeySpec = new SecretKeySpec(primaryKey.getBytes(StandardCharsets.UTF_8), "AES");
             Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
             cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
             
             byte[] encryptedBytes = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(encryptedBytes);
-        } catch (Exception e) {
+        } catch (Exception e)
+        {
             throw new RuntimeException("Error encrypting data", e);
         }
     }
     
-    public String decrypt(String encryptedData) {
-        if (encryptedData == null || encryptedData.isEmpty()) {
+    public String decrypt(String encryptedData)
+    {
+        if (encryptedData == null || encryptedData.isEmpty())
+        {
             return encryptedData;
         }
 
         Exception lastException = null;
-        try {
+        try
+        {
             return decryptWithKey(encryptedData, primaryKey);
-        } catch (Exception e) {
+        } catch (Exception e)
+        {
             lastException = e;
         }
 
-        for (String legacyKey : legacyKeys) {
-            try {
+        for (String legacyKey : legacyKeys)
+        {
+            try
+            {
                 return decryptWithKey(encryptedData, legacyKey);
-            } catch (Exception e) {
+            } catch (Exception e)
+            {
                 lastException = e;
             }
         }
@@ -91,7 +106,8 @@ public class EncryptionUtil {
         return encryptedData;
     }
     
-    private String decryptWithKey(String encryptedData, String key) throws Exception {
+    private String decryptWithKey(String encryptedData, String key) throws Exception
+    {
         SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "AES");
         Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
         cipher.init(Cipher.DECRYPT_MODE, secretKeySpec);
@@ -105,7 +121,8 @@ public class EncryptionUtil {
      * Check if a string is likely to be encrypted (Base64 encoded)
      * This is a heuristic - not 100% accurate but helpful to avoid double encryption
      */
-    private boolean isLikelyEncrypted(String data) {
+    private boolean isLikelyEncrypted(String data)
+    {
         if (data.length() < 10) {
             return false;
         }

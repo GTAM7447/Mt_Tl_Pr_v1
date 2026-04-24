@@ -30,7 +30,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class CompleteProfileServiceImpl implements CompleteProfileService {
+public class CompleteProfileServiceImpl implements CompleteProfileService
+{
 
     private final CompleteProfileRepository completeProfileRepo;
     private final CompleteProfileMapper mapper;
@@ -39,7 +40,8 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = CacheUtils.CacheNames.COMPLETE_PROFILES, key = "#root.target.getCurrentUserId()")
-    public CompleteProfileResponse getCurrentUserCompleteProfile() {
+    public CompleteProfileResponse getCurrentUserCompleteProfile()
+    {
         Integer currentUserId = ownershipService.getCurrentUserId();
         log.debug("Fetching complete profile for authenticated user ID: {}", currentUserId);
 
@@ -52,7 +54,8 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = CacheUtils.CacheNames.COMPLETE_PROFILES, key = "#userId")
-    public CompleteProfileResponse getByUserId(Integer userId) {
+    public CompleteProfileResponse getByUserId(Integer userId)
+    {
         log.debug("Admin fetching complete profile for user ID: {}", userId);
 
         CompleteProfile completeProfile = completeProfileRepo.findByUser_Id(userId)
@@ -64,15 +67,18 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = CacheUtils.CacheNames.COMPLETE_PROFILES, key = "'public_' + #userId")
-    public CompleteProfileResponse getPublicProfileByUserId(Integer userId) {
+    public CompleteProfileResponse getPublicProfileByUserId(Integer userId)
+    {
         log.debug("Public access: fetching complete profile for user ID: {}", userId);
 
-        try {
+        try
+        {
             CompleteProfile completeProfile = completeProfileRepo.findByUser_Id(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("Complete profile not found for user ID: " + userId));
 
             return mapper.toPublicResponse(completeProfile);
-        } catch (Exception e) {
+        } catch (Exception e)
+        {
             log.error("Error fetching public profile for user ID {}: {}", userId, e.getMessage());
             throw new ResourceNotFoundException("Profile not found or not available for public viewing");
         }
@@ -81,15 +87,18 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = CacheUtils.CacheNames.COMPLETE_PROFILES, key = "'public_cp_' + #completeProfileId")
-    public CompleteProfileResponse getPublicProfileByCompleteProfileId(Long completeProfileId) {
+    public CompleteProfileResponse getPublicProfileByCompleteProfileId(Long completeProfileId)
+    {
         log.debug("Public access: fetching complete profile by ID: {}", completeProfileId);
 
-        try {
+        try
+        {
             CompleteProfile completeProfile = completeProfileRepo.findById(Math.toIntExact(completeProfileId))
                     .orElseThrow(() -> new ResourceNotFoundException("Complete profile not found with ID: " + completeProfileId));
 
             return mapper.toPublicResponse(completeProfile);
-        } catch (Exception e) {
+        } catch (Exception e)
+        {
             log.error("Error fetching public profile by ID {}: {}", completeProfileId, e.getMessage());
             throw new ResourceNotFoundException("Profile not found or not available for public viewing");
         }
@@ -98,13 +107,16 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = CacheUtils.CacheNames.COMPLETE_PROFILES, key = "'public_browse_' + #pageable.pageNumber + '_' + #pageable.pageSize")
-    public Page<CompleteProfileResponse> getPublicProfiles(Pageable pageable) {
+    public Page<CompleteProfileResponse> getPublicProfiles(Pageable pageable)
+    {
         log.debug("Public access: fetching profiles for browsing, page: {}", pageable.getPageNumber());
 
-        try {
+        try
+        {
             Page<CompleteProfile> profiles = completeProfileRepo.findPublicProfiles(pageable);
             return profiles.map(mapper::toPublicResponse);
-        } catch (Exception e) {
+        } catch (Exception e)
+        {
             log.error("Error fetching public profiles for browsing: {}", e.getMessage());
             return Page.empty(pageable);
         }
@@ -112,7 +124,8 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<CompleteProfileResponse> getAllCompleteProfiles(Pageable pageable) {
+    public Page<CompleteProfileResponse> getAllCompleteProfiles(Pageable pageable)
+    {
         log.debug("Admin fetching all complete profiles, page: {}", pageable.getPageNumber());
 
         Page<CompleteProfile> profiles = completeProfileRepo.findAllWithUser(pageable);
@@ -122,7 +135,8 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = CacheUtils.CacheNames.COMPLETE_PROFILES, key = "'missing_' + #root.target.getCurrentUserId()")
-    public MissingProfileDTO checkCurrentUserMissingSections() {
+    public MissingProfileDTO checkCurrentUserMissingSections()
+    {
         Integer currentUserId = ownershipService.getCurrentUserId();
         log.debug("Checking missing sections for authenticated user ID: {}", currentUserId);
 
@@ -135,7 +149,8 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = CacheUtils.CacheNames.COMPLETE_PROFILES, key = "'missing_' + #userId")
-    public MissingProfileDTO checkMissingSections(Integer userId) {
+    public MissingProfileDTO checkMissingSections(Integer userId)
+    {
         log.debug("Admin checking missing sections for user ID: {}", userId);
 
         CompleteProfile completeProfile = completeProfileRepo.findByUser_Id(userId)
@@ -149,7 +164,8 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
     public Page<CompleteProfileResponse> searchByCompletionCriteria(
             Integer minPercentage, Integer maxPercentage, 
             String profileQuality, String verificationStatus,
-            Boolean profileCompleted, Pageable pageable) {
+            Boolean profileCompleted, Pageable pageable)
+    {
         
         log.debug("Admin searching profiles by completion criteria");
 
@@ -167,7 +183,8 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
 
     @Override
     @Transactional(readOnly = true)
-    public ProfileAnalyticsResponse getProfileAnalytics(ProfileAnalyticsRequest request) {
+    public ProfileAnalyticsResponse getProfileAnalytics(ProfileAnalyticsRequest request)
+    {
         log.debug("Admin generating profile analytics");
 
         ProfileAnalyticsResponse analytics = new ProfileAnalyticsResponse();
@@ -180,26 +197,30 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
 
         Map<String, Long> qualityDistribution = new HashMap<>();
         List<Object[]> qualityResults = completeProfileRepo.countByProfileQuality();
-        for (Object[] result : qualityResults) {
+        for (Object[] result : qualityResults)
+        {
             qualityDistribution.put(result[0].toString(), (Long) result[1]);
         }
         analytics.setQualityDistribution(qualityDistribution);
 
         Map<String, Long> verificationDistribution = new HashMap<>();
         List<Object[]> verificationResults = completeProfileRepo.countByVerificationStatus();
-        for (Object[] result : verificationResults) {
+        for (Object[] result : verificationResults)
+        {
             verificationDistribution.put(result[0].toString(), (Long) result[1]);
         }
         analytics.setVerificationDistribution(verificationDistribution);
 
         Map<String, Long> completionRangeDistribution = new HashMap<>();
         List<Object[]> rangeResults = completeProfileRepo.getCompletionPercentageDistribution();
-        for (Object[] result : rangeResults) {
+        for (Object[] result : rangeResults)
+        {
             completionRangeDistribution.put(result[0].toString(), (Long) result[1]);
         }
         analytics.setCompletionRangeDistribution(completionRangeDistribution);
 
-        if (request.getIncludeDetailedAnalytics() != null && request.getIncludeDetailedAnalytics()) {
+        if (request.getIncludeDetailedAnalytics() != null && request.getIncludeDetailedAnalytics())
+        {
             analytics.setDetailedAnalytics(generateDetailedAnalytics());
         }
 
@@ -208,7 +229,8 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
 
     @Override
     @Transactional(readOnly = true)
-    public ProfileCompletionStats getCompletionStatistics() {
+    public ProfileCompletionStats getCompletionStatistics()
+    {
         log.debug("Admin fetching profile completion statistics");
 
         ProfileCompletionStats stats = new ProfileCompletionStats();
@@ -235,21 +257,25 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
     @Transactional(isolation = Isolation.READ_COMMITTED)
     @CacheEvict(value = CacheUtils.CacheNames.COMPLETE_PROFILES, allEntries = true)
     @Async
-    public void recalcAndSave(CompleteProfile completeProfile) {
-        if (completeProfile == null || completeProfile.getUser() == null) {
+    public void recalcAndSave(CompleteProfile completeProfile)
+    {
+        if (completeProfile == null || completeProfile.getUser() == null)
+        {
             log.warn("Cannot recalculate profile: completeProfile or user is null");
             return;
         }
 
         Integer userId = completeProfile.getUser().getId();
         
-        try {
+        try
+        {
             log.debug("Recalculating profile completeness for user ID: {}", userId);
 
             CompleteProfile freshProfile = completeProfileRepo.findByUser_Id(userId)
                     .orElse(null);
             
-            if (freshProfile == null) {
+            if (freshProfile == null)
+            {
                 log.warn("CompleteProfile not found for user ID: {} during recalculation", userId);
                 return;
             }
@@ -263,13 +289,17 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
 
             log.debug("Profile completeness recalculated successfully for user ID: {}", userId);
 
-        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+        } catch (org.springframework.dao.DataIntegrityViolationException e)
+        {
             log.debug("Duplicate profile entry detected for user ID: {} - ignoring (another thread handled it)", userId);
-        } catch (org.springframework.orm.ObjectOptimisticLockingFailureException e) {
+        } catch (org.springframework.orm.ObjectOptimisticLockingFailureException e)
+        {
             log.debug("Optimistic locking conflict for user ID: {} - ignoring (another thread updated it)", userId);
-        } catch (org.hibernate.StaleStateException e) {
+        } catch (org.hibernate.StaleStateException e)
+        {
             log.debug("Stale state detected for user ID: {} - ignoring (another thread updated it)", userId);
-        } catch (Exception e) {
+        } catch (Exception e)
+        {
             log.error("Error recalculating profile completeness for user ID {}: {}", userId, e.getMessage());
         }
     }
@@ -277,7 +307,8 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
     @Override
     @Transactional
     @CacheEvict(value = CacheUtils.CacheNames.COMPLETE_PROFILES, key = "#userId")
-    public void forceRecalculateProfile(Integer userId) {
+    public void forceRecalculateProfile(Integer userId)
+    {
         log.info("Force recalculating profile for user ID: {}", userId);
 
         CompleteProfile completeProfile = completeProfileRepo.findByUser_Id(userId)
@@ -288,7 +319,8 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<CompleteProfileResponse> getTopProfilesByScore(Pageable pageable) {
+    public Page<CompleteProfileResponse> getTopProfilesByScore(Pageable pageable)
+    {
         log.debug("Admin fetching top profiles by score");
 
         Page<CompleteProfile> profiles = completeProfileRepo.findTopProfilesByScore(pageable);
@@ -298,7 +330,8 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
     @Override
     @Transactional(readOnly = true)
     public Page<CompleteProfileResponse> getProfilesUpdatedBetween(
-            LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+            LocalDateTime startDate, LocalDateTime endDate, Pageable pageable)
+    {
         
         log.debug("Admin fetching profiles updated between {} and {}", startDate, endDate);
 
@@ -309,49 +342,58 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
     /**
      * Get current user ID for caching key generation.
      */
-    public Integer getCurrentUserId() {
+    public Integer getCurrentUserId()
+    {
         return ownershipService.getCurrentUserId();
     }
 
     /**
      * Calculate completion metrics for the profile.
      */
-    private void calculateCompletionMetrics(CompleteProfile profile) {
+    private void calculateCompletionMetrics(CompleteProfile profile)
+    {
         int totalSections = 7;
         int completedSections = 0;
         int totalScore = 0;
 
-        if (profile.getUserProfile() != null) {
+        if (profile.getUserProfile() != null)
+        {
             completedSections++;
             totalScore += 25;
         }
 
-        if (profile.getContactDetails() != null) {
+        if (profile.getContactDetails() != null)
+        {
             completedSections++;
             totalScore += 20;
         }
 
-        if (profile.getPartnerPreference() != null) {
+        if (profile.getPartnerPreference() != null)
+        {
             completedSections++;
             totalScore += 20;
         }
 
-        if (profile.getEducationAndProfession() != null) {
+        if (profile.getEducationAndProfession() != null)
+        {
             completedSections++;
             totalScore += 15;
         }
 
-        if (profile.getFamilyBackground() != null) {
+        if (profile.getFamilyBackground() != null)
+        {
             completedSections++;
             totalScore += 10;
         }
 
-        if (profile.getHoroscopeDetails() != null) {
+        if (profile.getHoroscopeDetails() != null)
+        {
             completedSections++;
             totalScore += 5;
         }
 
-        if (profile.getDocuments() != null && !profile.getDocuments().isEmpty()) {
+        if (profile.getDocuments() != null && !profile.getDocuments().isEmpty())
+        {
             completedSections++;
             totalScore += 5;
         }
@@ -365,7 +407,8 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
     /**
      * Calculate strength metrics for individual sections.
      */
-    private void calculateStrengthMetrics(CompleteProfile profile) {
+    private void calculateStrengthMetrics(CompleteProfile profile)
+    {
         profile.setBasicInfoScore(profile.getUserProfile() != null ? 95 : 0);
 
         int contactScore = 0;
@@ -385,7 +428,8 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
         profile.setPreferencesScore(profile.getPartnerPreference() != null ? 80 : 0);
 
         int docScore = 0;
-        if (profile.getDocuments() != null && !profile.getDocuments().isEmpty()) {
+        if (profile.getDocuments() != null && !profile.getDocuments().isEmpty())
+        {
             docScore = 40;
             if (profile.getHasProfilePhoto()) docScore += 30;
             if (profile.getIdentityVerified()) docScore += 30;
@@ -396,18 +440,24 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
     /**
      * Determine profile quality based on completion score.
      */
-    private void determineProfileQuality(CompleteProfile profile) {
+    private void determineProfileQuality(CompleteProfile profile)
+    {
         int score = profile.getCompletenessScore();
         
-        if (score >= 90) {
+        if (score >= 90)
+        {
             profile.setProfileQuality(CompleteProfile.ProfileQuality.EXCELLENT);
-        } else if (score >= 75) {
+        } else if (score >= 75)
+        {
             profile.setProfileQuality(CompleteProfile.ProfileQuality.VERY_GOOD);
-        } else if (score >= 60) {
+        } else if (score >= 60)
+        {
             profile.setProfileQuality(CompleteProfile.ProfileQuality.GOOD);
-        } else if (score >= 40) {
+        } else if (score >= 40)
+        {
             profile.setProfileQuality(CompleteProfile.ProfileQuality.FAIR);
-        } else {
+        } else
+        {
             profile.setProfileQuality(CompleteProfile.ProfileQuality.POOR);
         }
     }
@@ -415,16 +465,20 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
     /**
      * Update verification status based on individual verifications.
      */
-    private void updateVerificationStatus(CompleteProfile profile) {
+    private void updateVerificationStatus(CompleteProfile profile)
+    {
         boolean hasVerifications = profile.getMobileVerified() || 
                                  profile.getEmailVerified() || 
                                  profile.getIdentityVerified();
 
-        if (profile.getMobileVerified() && profile.getEmailVerified() && profile.getIdentityVerified()) {
+        if (profile.getMobileVerified() && profile.getEmailVerified() && profile.getIdentityVerified())
+        {
             profile.setVerificationStatus(CompleteProfile.VerificationStatus.VERIFIED);
-        } else if (hasVerifications) {
+        } else if (hasVerifications)
+        {
             profile.setVerificationStatus(CompleteProfile.VerificationStatus.PENDING);
-        } else {
+        } else
+        {
             profile.setVerificationStatus(CompleteProfile.VerificationStatus.UNVERIFIED);
         }
     }
@@ -432,7 +486,8 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
     /**
      * Generate detailed analytics data.
      */
-    private Map<String, Object> generateDetailedAnalytics() {
+    private Map<String, Object> generateDetailedAnalytics()
+    {
         Map<String, Object> analytics = new HashMap<>();
 
         analytics.put("sectionCompletionRates", calculateSectionCompletionRates(completeProfileRepo.countTotalProfiles()));
@@ -446,7 +501,8 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
     /**
      * Calculate section completion counts.
      */
-    private Map<String, Long> calculateSectionCompletionCounts() {
+    private Map<String, Long> calculateSectionCompletionCounts()
+    {
         Map<String, Long> counts = new HashMap<>();
         counts.put("userProfile", 0L);
         counts.put("contactDetails", 0L);
@@ -461,11 +517,13 @@ public class CompleteProfileServiceImpl implements CompleteProfileService {
     /**
      * Calculate section completion rates.
      */
-    private Map<String, Double> calculateSectionCompletionRates(Long totalProfiles) {
+    private Map<String, Double> calculateSectionCompletionRates(Long totalProfiles)
+    {
         Map<String, Long> counts = calculateSectionCompletionCounts();
         Map<String, Double> rates = new HashMap<>();
         
-        if (totalProfiles > 0) {
+        if (totalProfiles > 0)
+        {
             counts.forEach((section, count) -> 
                 rates.put(section, (count.doubleValue() / totalProfiles.doubleValue()) * 100));
         }

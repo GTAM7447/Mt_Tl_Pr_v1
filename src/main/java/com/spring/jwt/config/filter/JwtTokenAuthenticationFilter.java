@@ -105,6 +105,14 @@ public class JwtTokenAuthenticationFilter extends OncePerRequestFilter {
             }
 
             String deviceFingerprint = jwtService.generateDeviceFingerprint(request);
+            
+            // Check if token is blacklisted FIRST
+            if (jwtService.isBlacklisted(token)) {
+                log.warn("Attempted use of blacklisted token for request: {}", request.getRequestURI());
+                handleInvalidToken(response, "Token has been revoked. Please login again.");
+                return;
+            }
+            
             if (!jwtService.isValidToken(token, deviceFingerprint)) {
                 log.warn("Token validation failed for request: {}", request.getRequestURI());
                 filterChain.doFilter(request, response);

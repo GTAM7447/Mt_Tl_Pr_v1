@@ -18,10 +18,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
-import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
@@ -83,10 +81,10 @@ public class JwtServiceImpl implements JwtService {
     }
 
     /**
-     * 2️⃣ CANONICAL JWT GENERATION METHOD - Access Token
+     * CANONICAL JWT GENERATION METHOD - Access Token
      * This is the ONLY method that should generate access tokens
      * DO NOT create duplicate token builders elsewhere
-     * 7️⃣ JWT is IMMUTABLE after creation - never modify after signing
+     * JWT is IMMUTABLE after creation - never modify after signing
      */
     @Override
     public String generateToken(UserDetailsCustom userDetailsCustom, String deviceFingerprint) {
@@ -144,10 +142,10 @@ public class JwtServiceImpl implements JwtService {
     }
     
     /**
-     * 2️⃣ CANONICAL JWT GENERATION METHOD - Refresh Token
+     * CANONICAL JWT GENERATION METHOD - Refresh Token
      * This is the ONLY method that should generate refresh tokens
      * DO NOT create duplicate token builders elsewhere
-     * 7️⃣ JWT is IMMUTABLE after creation - never modify after signing
+     * JWT is IMMUTABLE after creation - never modify after signing
      */
     @Override
     public String generateRefreshToken(UserDetailsCustom userDetailsCustom, String deviceFingerprint) {
